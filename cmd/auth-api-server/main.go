@@ -1,7 +1,18 @@
 package main
 
-import "log"
+import (
+	"github.com/mkaiho/go-auth-api/util"
+)
+
+func init() {
+	util.InitGLogger(
+		util.OptionLoggerLevel(util.LoggerLevelDebug),
+		util.OptionLoggerFormat(util.LoggerFormatJSON),
+	)
+}
 
 func main() {
-	log.Println("hello world")
+	logger := util.GLogger()
+
+	logger.Info("completed")
 }
