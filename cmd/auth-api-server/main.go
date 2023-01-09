@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mkaiho/go-auth-api/controller/web"
 	"github.com/mkaiho/go-auth-api/util"
 	"github.com/spf13/cobra"
 )
@@ -56,7 +57,7 @@ func newCommand() *cobra.Command {
 		SilenceErrors: true,
 	}
 	command.Flags().IntP("port", "", 3000, "listening port")
-	command.Flags().StringP("host", "", "localhost", "host name")
+	command.Flags().StringP("host", "", "", "host name")
 
 	return &command
 }
@@ -81,10 +82,10 @@ func handle(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
+	server := web.NewGinServer()
 	logger.
 		WithValues("host", host).
 		WithValues("port", port).
 		Info("launch server")
-
-	return nil
+	return server.Run(fmt.Sprintf("%s:%d", "", port))
 }
