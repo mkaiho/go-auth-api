@@ -148,7 +148,7 @@ func FromContext(ctx context.Context) Logger {
 	return gLogger
 }
 
-func NewContext(ctx context.Context, logger Logger) context.Context {
+func NewContextWithLogger(ctx context.Context, logger Logger) context.Context {
 	return context.WithValue(ctx, loggerContextKey{}, logger)
 }
 
