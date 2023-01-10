@@ -3,16 +3,17 @@ module github.com/mkaiho/go-auth-api
 go 1.19
 
 require (
+	github.com/gin-gonic/gin v1.8.2
 	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/stdr v1.2.2
 	github.com/go-logr/zapr v1.2.3
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/spf13/cobra v1.6.1
 	go.uber.org/zap v1.24.0
 )
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/gin-gonic/gin v1.8.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
 	github.com/go-playground/validator/v10 v10.11.1 // indirect
