@@ -5,3 +5,5 @@ type User struct {
 	Name  string
 	Email Email
 }
+
+type Users []*User
