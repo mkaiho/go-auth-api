@@ -1,4 +1,4 @@
-package web
+package middlewares
 
 import (
 	"errors"
@@ -25,8 +25,7 @@ func NewGinLogger() gin.HandlerFunc {
 			WithValues("method", c.Request.Method).
 			WithValues("statusCode", c.Writer.Status()).
 			WithValues("path", path).
-			WithValues("bodySize", c.Writer.Size()).
-			WithValues()
+			WithValues("bodySize", c.Writer.Size())
 		if msgs := c.Errors.ByType(gin.ErrorTypePrivate); len(msgs) > 0 {
 			logger.Error(errors.New(msgs.String()), "request error")
 			return
