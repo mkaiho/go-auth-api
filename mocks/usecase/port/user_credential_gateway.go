@@ -17,17 +17,26 @@ type UserCredentialGateway struct {
 }
 
 // Create provides a mock function with given fields: ctx, input
-func (_m *UserCredentialGateway) Create(ctx context.Context, input port.UserCredentialCreateInput) error {
+func (_m *UserCredentialGateway) Create(ctx context.Context, input port.UserCredentialCreateInput) (*entity.UserCredential, error) {
 	ret := _m.Called(ctx, input)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, port.UserCredentialCreateInput) error); ok {
+	var r0 *entity.UserCredential
+	if rf, ok := ret.Get(0).(func(context.Context, port.UserCredentialCreateInput) *entity.UserCredential); ok {
 		r0 = rf(ctx, input)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.UserCredential)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, port.UserCredentialCreateInput) error); ok {
+		r1 = rf(ctx, input)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // GetByEmail provides a mock function with given fields: ctx, email

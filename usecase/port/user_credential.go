@@ -16,5 +16,5 @@ type (
 
 type UserCredentialGateway interface {
 	GetByEmail(ctx context.Context, email entity.Email) (*entity.UserCredential, error)
-	Create(ctx context.Context, input UserCredentialCreateInput) error
+	Create(ctx context.Context, input UserCredentialCreateInput) (*entity.UserCredential, error)
 }
