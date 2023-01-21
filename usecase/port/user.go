@@ -12,7 +12,7 @@ type (
 		Email entity.Email
 	}
 	UserListInput struct {
-		Email entity.Email
+		Email *entity.Email
 	}
 )
 

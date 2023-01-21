@@ -28,3 +28,5 @@ type UserCredential struct {
 	Email    Email
 	Password Password
 }
+
+type UserCredentials []*UserCredential

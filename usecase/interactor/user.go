@@ -12,6 +12,9 @@ type (
 	GetUserInput struct {
 		ID entity.ID
 	}
+	FindUserInput struct {
+		Email *entity.Email
+	}
 	CreateUserInput struct {
 		Name     string
 		Email    entity.Email
@@ -23,6 +26,7 @@ var _ UserInteractor = (*userInteractor)(nil)
 
 type UserInteractor interface {
 	GetUser(ctx context.Context, input GetUserInput) (*entity.User, error)
+	FindUsers(ctx context.Context, input FindUserInput) (entity.Users, error)
 	CreateUser(ctx context.Context, input CreateUserInput) (*entity.User, error)
 }
 
@@ -54,6 +58,23 @@ func (it *userInteractor) GetUser(
 	}
 
 	return user, nil
+}
+
+func (it *userInteractor) FindUsers(
+	ctx context.Context,
+	input FindUserInput,
+) (entity.Users, error) {
+	logger := util.FromContext(ctx)
+
+	users, err := it.users.List(ctx, port.UserListInput{
+		Email: input.Email,
+	})
+	if err != nil {
+		logger.Error(err, "failed find user")
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (it *userInteractor) CreateUser(
