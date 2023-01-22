@@ -10,10 +10,12 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mkaiho/go-auth-api/controller/web/handlers"
+	"github.com/mkaiho/go-auth-api/usecase"
 	"github.com/mkaiho/go-auth-api/util"
 )
 
-func Recovery() gin.HandlerFunc {
+func Recovery() handlers.Handler {
 	logger := util.GLogger().WithCallDepth(2)
 	return func(c *gin.Context) {
 		defer func() {
@@ -59,6 +61,21 @@ func Recovery() gin.HandlerFunc {
 				} else {
 					c.AbortWithStatus(http.StatusInternalServerError)
 				}
+			}
+			if errMsgs := c.Errors.ByType(gin.ErrorTypeBind); len(errMsgs) > 0 {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": errMsgs[0].Err.Error(),
+				})
+			} else if errMsgs := c.Errors.ByType(gin.ErrorTypePublic); len(errMsgs) > 0 {
+				code := http.StatusBadRequest
+				if errors.Is(errMsgs[0].Err, usecase.ErrNotFoundEntity) {
+					code = http.StatusNotFound
+				} else if errors.Is(errMsgs[0].Err, usecase.ErrAlreadyExistsEntity) {
+					code = http.StatusConflict
+				}
+				c.AbortWithStatusJSON(code, gin.H{
+					"message": http.StatusText(code),
+				})
 			}
 		}()
 		c.Next()

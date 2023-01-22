@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/mkaiho/go-auth-api/controller/web/handlers"
 	"github.com/mkaiho/go-auth-api/util"
 )
 
-func NewGinLogger() gin.HandlerFunc {
+func NewGinLogger() handlers.Handler {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path

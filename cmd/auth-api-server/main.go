@@ -5,7 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mkaiho/go-auth-api/adapter/gateway"
 	"github.com/mkaiho/go-auth-api/controller/web"
+	"github.com/mkaiho/go-auth-api/controller/web/handlers"
+	"github.com/mkaiho/go-auth-api/controller/web/routes"
+	"github.com/mkaiho/go-auth-api/usecase/interactor"
+	"github.com/mkaiho/go-auth-api/usecase/port"
 	"github.com/mkaiho/go-auth-api/util"
 	"github.com/spf13/cobra"
 )
@@ -82,10 +87,44 @@ func handle(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	server := web.NewGinServer()
+	server := server()
 	logger.
 		WithValues("host", host).
 		WithValues("port", port).
 		Info("launch server")
 	return server.Run(fmt.Sprintf("%s:%d", "", port))
+}
+
+func server() web.Server {
+	// ports
+	var (
+		userGateway           port.UserGateway
+		userCredentialGateway port.UserCredentialGateway
+	)
+	{
+		userGateway = gateway.NewStubUserGateway()
+		userCredentialGateway = gateway.NewStubUserCredentialGateway()
+	}
+	// interactors
+	var (
+		userInteractor interactor.UserInteractor
+	)
+	{
+		userInteractor = interactor.NewUserInteractor(
+			userGateway,
+			userCredentialGateway,
+		)
+	}
+
+	// routes
+	users := routes.NewUserRoutes(
+		handlers.NewUserFindHandler(userInteractor),
+		handlers.NewUserCreateHandler(userInteractor),
+		handlers.NewUserGetHandler(userInteractor),
+		handlers.NewUserUpdateHandler(userInteractor),
+	)
+
+	return *web.NewGinServer(
+		users...,
+	)
 }
