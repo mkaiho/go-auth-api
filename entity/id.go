@@ -15,6 +15,10 @@ func ParseID(v string) (ID, error) {
 	return ID(v), nil
 }
 
+func (id ID) String() string {
+	return string(id)
+}
+
 func (id ID) Validate() error {
 	if len(id) == 0 {
 		return errors.New("empty")

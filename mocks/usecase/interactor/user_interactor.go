@@ -85,6 +85,29 @@ func (_m *UserInteractor) GetUser(ctx context.Context, input interactor.GetUserI
 	return r0, r1
 }
 
+// UpdateUser provides a mock function with given fields: ctx, input
+func (_m *UserInteractor) UpdateUser(ctx context.Context, input interactor.UpdateUserInput) (*entity.User, error) {
+	ret := _m.Called(ctx, input)
+
+	var r0 *entity.User
+	if rf, ok := ret.Get(0).(func(context.Context, interactor.UpdateUserInput) *entity.User); ok {
+		r0 = rf(ctx, input)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*entity.User)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, interactor.UpdateUserInput) error); ok {
+		r1 = rf(ctx, input)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 type mockConstructorTestingTNewUserInteractor interface {
 	mock.TestingT
 	Cleanup(func())

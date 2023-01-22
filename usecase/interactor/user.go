@@ -20,6 +20,11 @@ type (
 		Email    entity.Email
 		Password entity.Password
 	}
+	UpdateUserInput struct {
+		ID    entity.ID
+		Name  string
+		Email entity.Email
+	}
 )
 
 var _ UserInteractor = (*userInteractor)(nil)
@@ -28,6 +33,7 @@ type UserInteractor interface {
 	GetUser(ctx context.Context, input GetUserInput) (*entity.User, error)
 	FindUsers(ctx context.Context, input FindUserInput) (entity.Users, error)
 	CreateUser(ctx context.Context, input CreateUserInput) (*entity.User, error)
+	UpdateUser(ctx context.Context, input UpdateUserInput) (*entity.User, error)
 }
 
 type userInteractor struct {
@@ -99,6 +105,25 @@ func (it *userInteractor) CreateUser(
 	})
 	if err != nil {
 		logger.Error(err, "failed create user credentials")
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (it *userInteractor) UpdateUser(
+	ctx context.Context,
+	input UpdateUserInput,
+) (*entity.User, error) {
+	logger := util.FromContext(ctx)
+
+	user, err := it.users.Update(ctx, port.UserUpdateInput{
+		ID:    input.ID,
+		Name:  input.Name,
+		Email: input.Email,
+	})
+	if err != nil {
+		logger.Error(err, "failed update user")
 		return nil, err
 	}
 

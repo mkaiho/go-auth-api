@@ -38,9 +38,10 @@ func (g *StubUserGateway) List(ctx context.Context, input port.UserListInput) (e
 	defer g.mux.RUnlock()
 	var users entity.Users
 	for _, user := range g.users {
-		if input.Email != nil && user.Email == *input.Email {
-			users = append(users, user)
+		if input.Email != nil && user.Email != *input.Email {
+			continue
 		}
+		users = append(users, user)
 	}
 
 	return users, nil
@@ -66,6 +67,20 @@ func (g *StubUserGateway) Create(ctx context.Context, input port.UserCreateInput
 	g.users[user.ID] = user
 
 	return user, nil
+}
+
+func (g *StubUserGateway) Update(ctx context.Context, input port.UserUpdateInput) (*entity.User, error) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+	for _, user := range g.users {
+		if user.ID == input.ID {
+			g.users[input.ID].Name = input.Name
+			g.users[input.ID].Email = input.Email
+			return g.users[input.ID], nil
+		}
+	}
+
+	return nil, usecase.ErrNotFoundEntity
 }
 
 func NewStubUserGateway() port.UserGateway {

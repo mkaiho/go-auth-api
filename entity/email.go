@@ -15,6 +15,10 @@ func ParseEmail(v string) (Email, error) {
 	return Email(v), nil
 }
 
+func (e Email) String() string {
+	return string(e)
+}
+
 func (e Email) Validate() error {
 	if len(e) == 0 {
 		return errors.New("empty")
