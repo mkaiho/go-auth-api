@@ -50,6 +50,18 @@ test-report:
 	@mkdir -p ./test-results
 	gotestsum --junitfile ./test-results/unit-tests.xml -- -coverprofile=cover.out ./...
 
+.PHONY: deploy-deps
+deploy-deps:
+	cd ./_deployments/cdk && npm i
+
+.PHONY: deploy
+deploy:
+	cd ./_deployments/cdk && cdk deploy -c env=stage
+
+.PHONY: destroy
+destroy:
+	cd ./_deployments/cdk && cdk destroy -c env=stage
+
 .PHONY: clean
 clean:
 	@rm -rf ${BIN_DIR}
