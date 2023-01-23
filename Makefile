@@ -54,6 +54,14 @@ test-report:
 deploy-deps:
 	cd ./_deployments/cdk && npm i
 
+.PHONY: cdk-test
+cdk-test:
+	cd ./_deployments/cdk && npm test
+
+.PHONY: cdk-update-snapshot
+cdk-update-snapshot:
+	cd ./_deployments/cdk && npm test -- -u
+
 .PHONY: deploy
 deploy:
 	cd ./_deployments/cdk && cdk deploy -c env=stage

@@ -1,0 +1,141 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`snapshot test 1`] = `
+{
+  "Parameters": {
+    "BootstrapVersion": {
+      "Default": "/cdk-bootstrap/hnb659fds/version",
+      "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
+      "Type": "AWS::SSM::Parameter::Value<String>",
+    },
+  },
+  "Resources": {
+    "undefinedappprivatesubnetRouteTableAssociationD0B5B784": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "undefinedappprivatesubnetRouteTableF88684D4",
+        },
+        "SubnetId": {
+          "Ref": "undefinedappprivatesubnetSubnetED0B978B",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "undefinedappprivatesubnetRouteTableF88684D4": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestStack/undefined-app-private-subnet",
+          },
+        ],
+        "VpcId": {
+          "Ref": "undefinedvpc9D035DFB",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "undefinedappprivatesubnetSubnetED0B978B": {
+      "Properties": {
+        "AvailabilityZone": "ap-northeast-1a",
+        "CidrBlock": "10.0.1.0/24",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestStack/undefined-app-private-subnet",
+          },
+        ],
+        "VpcId": {
+          "Ref": "undefinedvpc9D035DFB",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "undefinedapppublicsubnetRouteTable3952D553": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestStack/undefined-app-public-subnet",
+          },
+        ],
+        "VpcId": {
+          "Ref": "undefinedvpc9D035DFB",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "undefinedapppublicsubnetRouteTableAssociationD01111B9": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "undefinedapppublicsubnetRouteTable3952D553",
+        },
+        "SubnetId": {
+          "Ref": "undefinedapppublicsubnetSubnet2FB35E58",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "undefinedapppublicsubnetSubnet2FB35E58": {
+      "Properties": {
+        "AvailabilityZone": "ap-northeast-1a",
+        "CidrBlock": "10.0.0.0/24",
+        "MapPublicIpOnLaunch": false,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "TestStack/undefined-app-public-subnet",
+          },
+        ],
+        "VpcId": {
+          "Ref": "undefinedvpc9D035DFB",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "undefinedvpc9D035DFB": {
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "InstanceTenancy": "default",
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "undefined-vpc",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::VPC",
+    },
+  },
+  "Rules": {
+    "CheckBootstrapVersion": {
+      "Assertions": [
+        {
+          "Assert": {
+            "Fn::Not": [
+              {
+                "Fn::Contains": [
+                  [
+                    "1",
+                    "2",
+                    "3",
+                    "4",
+                    "5",
+                  ],
+                  {
+                    "Ref": "BootstrapVersion",
+                  },
+                ],
+              },
+            ],
+          },
+          "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI.",
+        },
+      ],
+    },
+  },
+}
+`;
