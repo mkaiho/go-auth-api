@@ -7,7 +7,7 @@ import { context } from '../cdk.json';
 // example resource in lib/go-auth-api-stack.ts
 test('snapshot test', () => {
     const env = "stage"
-    const app = new cdk.App({ context: { env, [env]: context } });
+    const app = new cdk.App({ context: { env, ...context } });
     // WHEN
     const stack = new TestStack(app, 'TestStack');
     // THEN

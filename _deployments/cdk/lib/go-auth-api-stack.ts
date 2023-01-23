@@ -1,4 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
+import { Tags } from 'aws-cdk-lib';
 import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -39,11 +40,21 @@ export class GoAuthApiStack extends cdk.Stack {
       availabilityZone: "ap-northeast-1a",
       mapPublicIpOnLaunch: false,
     });
+    Tags.of(appPublicSubnet).add('Name', `${context.name}-app-public-subnet`)
     const apPrivateSubnet = new Subnet(this, `${context.name}-app-private-subnet`, {
       vpcId: vpc.vpcId,
       cidrBlock: "10.0.1.0/24",
       availabilityZone: "ap-northeast-1a",
       mapPublicIpOnLaunch: false,
+    });
+    Tags.of(apPrivateSubnet).add('Name', `${context.name}-app-private-subnet`)
+
+    /**
+     * ECR
+     */
+    const image = this.synthesizer.addDockerImageAsset({
+      sourceHash: revision,
+      directoryName: `${__dirname}/../../../`,
     });
   }
 }

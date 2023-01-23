@@ -10,32 +10,32 @@ exports[`snapshot test 1`] = `
     },
   },
   "Resources": {
-    "undefinedappprivatesubnetRouteTableAssociationD0B5B784": {
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "undefinedappprivatesubnetRouteTableF88684D4",
-        },
-        "SubnetId": {
-          "Ref": "undefinedappprivatesubnetSubnetED0B978B",
-        },
-      },
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-    },
-    "undefinedappprivatesubnetRouteTableF88684D4": {
+    "goauthapiappprivatesubnetRouteTable58DD87C2": {
       "Properties": {
         "Tags": [
           {
             "Key": "Name",
-            "Value": "TestStack/undefined-app-private-subnet",
+            "Value": "go-auth-api-app-private-subnet",
           },
         ],
         "VpcId": {
-          "Ref": "undefinedvpc9D035DFB",
+          "Ref": "goauthapivpc70352260",
         },
       },
       "Type": "AWS::EC2::RouteTable",
     },
-    "undefinedappprivatesubnetSubnetED0B978B": {
+    "goauthapiappprivatesubnetRouteTableAssociation02E87075": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "goauthapiappprivatesubnetRouteTable58DD87C2",
+        },
+        "SubnetId": {
+          "Ref": "goauthapiappprivatesubnetSubnet262F9611",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "goauthapiappprivatesubnetSubnet262F9611": {
       "Properties": {
         "AvailabilityZone": "ap-northeast-1a",
         "CidrBlock": "10.0.1.0/24",
@@ -43,41 +43,41 @@ exports[`snapshot test 1`] = `
         "Tags": [
           {
             "Key": "Name",
-            "Value": "TestStack/undefined-app-private-subnet",
+            "Value": "go-auth-api-app-private-subnet",
           },
         ],
         "VpcId": {
-          "Ref": "undefinedvpc9D035DFB",
+          "Ref": "goauthapivpc70352260",
         },
       },
       "Type": "AWS::EC2::Subnet",
     },
-    "undefinedapppublicsubnetRouteTable3952D553": {
-      "Properties": {
-        "Tags": [
-          {
-            "Key": "Name",
-            "Value": "TestStack/undefined-app-public-subnet",
-          },
-        ],
-        "VpcId": {
-          "Ref": "undefinedvpc9D035DFB",
-        },
-      },
-      "Type": "AWS::EC2::RouteTable",
-    },
-    "undefinedapppublicsubnetRouteTableAssociationD01111B9": {
+    "goauthapiapppublicsubnetRouteTableAssociation0AACFC00": {
       "Properties": {
         "RouteTableId": {
-          "Ref": "undefinedapppublicsubnetRouteTable3952D553",
+          "Ref": "goauthapiapppublicsubnetRouteTableB08D9E9C",
         },
         "SubnetId": {
-          "Ref": "undefinedapppublicsubnetSubnet2FB35E58",
+          "Ref": "goauthapiapppublicsubnetSubnetBEB5997A",
         },
       },
       "Type": "AWS::EC2::SubnetRouteTableAssociation",
     },
-    "undefinedapppublicsubnetSubnet2FB35E58": {
+    "goauthapiapppublicsubnetRouteTableB08D9E9C": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "go-auth-api-app-public-subnet",
+          },
+        ],
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "goauthapiapppublicsubnetSubnetBEB5997A": {
       "Properties": {
         "AvailabilityZone": "ap-northeast-1a",
         "CidrBlock": "10.0.0.0/24",
@@ -85,16 +85,16 @@ exports[`snapshot test 1`] = `
         "Tags": [
           {
             "Key": "Name",
-            "Value": "TestStack/undefined-app-public-subnet",
+            "Value": "go-auth-api-app-public-subnet",
           },
         ],
         "VpcId": {
-          "Ref": "undefinedvpc9D035DFB",
+          "Ref": "goauthapivpc70352260",
         },
       },
       "Type": "AWS::EC2::Subnet",
     },
-    "undefinedvpc9D035DFB": {
+    "goauthapivpc70352260": {
       "Properties": {
         "CidrBlock": "10.0.0.0/16",
         "EnableDnsHostnames": true,
@@ -103,7 +103,7 @@ exports[`snapshot test 1`] = `
         "Tags": [
           {
             "Key": "Name",
-            "Value": "undefined-vpc",
+            "Value": "go-auth-api-vpc",
           },
         ],
       },
