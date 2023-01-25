@@ -63,12 +63,12 @@ cdk-update-snapshot:
 	cd ./_deployments/cdk && npm test -- -u
 
 .PHONY: deploy
-deploy:
-	cd ./_deployments/cdk && cdk deploy -c env=stage
+deploy: cdk-test
+	cd ./_deployments/cdk && npx cdk deploy -c env=stage
 
 .PHONY: destroy
 destroy:
-	cd ./_deployments/cdk && cdk destroy -c env=stage
+	cd ./_deployments/cdk && npx cdk destroy -c env=stage
 
 .PHONY: clean
 clean:

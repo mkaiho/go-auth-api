@@ -1,6 +1,12 @@
 import * as cdk from 'aws-cdk-lib';
 import { Tags } from 'aws-cdk-lib';
-import { Subnet, Vpc } from 'aws-cdk-lib/aws-ec2';
+import {
+  CfnInternetGateway,
+  CfnVPCGatewayAttachment,
+  IpAddresses,
+  Subnet,
+  Vpc,
+} from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
@@ -28,8 +34,24 @@ export class GoAuthApiStack extends cdk.Stack {
       enableDnsSupport: true,
       natGateways: 0,
       subnetConfiguration: [],
-      cidr: "10.0.0.0/16",
+      ipAddresses: IpAddresses.cidr("10.0.0.0/16")
     });
+
+    /**
+     * Gateway
+     */
+    const igw = new CfnInternetGateway(this, `${context.name}-igw`, {
+      tags: [
+        {
+          key: "Name",
+          value: `${context.name}-igw`,
+        },
+      ],
+    })
+    const igwAttachment = new CfnVPCGatewayAttachment(this, `${context.name}-igw-attachment`, {
+      vpcId: vpc.vpcId,
+      internetGatewayId: igw.ref,
+    })
 
     /**
      * Subnet
@@ -38,8 +60,9 @@ export class GoAuthApiStack extends cdk.Stack {
       vpcId: vpc.vpcId,
       cidrBlock: "10.0.0.0/24",
       availabilityZone: "ap-northeast-1a",
-      mapPublicIpOnLaunch: false,
-    });
+      mapPublicIpOnLaunch: true,
+    })
+    appPublicSubnet.addDefaultInternetRoute(igw.ref, igwAttachment)
     Tags.of(appPublicSubnet).add('Name', `${context.name}-app-public-subnet`)
     const apPrivateSubnet = new Subnet(this, `${context.name}-app-private-subnet`, {
       vpcId: vpc.vpcId,

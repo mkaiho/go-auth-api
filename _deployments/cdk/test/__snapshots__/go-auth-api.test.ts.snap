@@ -52,6 +52,21 @@ exports[`snapshot test 1`] = `
       },
       "Type": "AWS::EC2::Subnet",
     },
+    "goauthapiapppublicsubnetDefaultRouteE94367FB": {
+      "DependsOn": [
+        "goauthapiigwattachment",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "goauthapiigw",
+        },
+        "RouteTableId": {
+          "Ref": "goauthapiapppublicsubnetRouteTableB08D9E9C",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
     "goauthapiapppublicsubnetRouteTableAssociation0AACFC00": {
       "Properties": {
         "RouteTableId": {
@@ -81,7 +96,7 @@ exports[`snapshot test 1`] = `
       "Properties": {
         "AvailabilityZone": "ap-northeast-1a",
         "CidrBlock": "10.0.0.0/24",
-        "MapPublicIpOnLaunch": false,
+        "MapPublicIpOnLaunch": true,
         "Tags": [
           {
             "Key": "Name",
@@ -93,6 +108,28 @@ exports[`snapshot test 1`] = `
         },
       },
       "Type": "AWS::EC2::Subnet",
+    },
+    "goauthapiigw": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "go-auth-api-igw",
+          },
+        ],
+      },
+      "Type": "AWS::EC2::InternetGateway",
+    },
+    "goauthapiigwattachment": {
+      "Properties": {
+        "InternetGatewayId": {
+          "Ref": "goauthapiigw",
+        },
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::VPCGatewayAttachment",
     },
     "goauthapivpc70352260": {
       "Properties": {
