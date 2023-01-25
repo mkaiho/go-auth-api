@@ -117,14 +117,18 @@ func server() web.Server {
 	}
 
 	// routes
+	var r routes.Routes
 	users := routes.NewUserRoutes(
 		handlers.NewUserFindHandler(userInteractor),
 		handlers.NewUserCreateHandler(userInteractor),
 		handlers.NewUserGetHandler(userInteractor),
 		handlers.NewUserUpdateHandler(userInteractor),
 	)
-
-	return *web.NewGinServer(
-		users...,
+	r = append(r, users...)
+	health := routes.NewHealthRoutes(
+		handlers.NewHealthGetHandler(),
 	)
+	r = append(r, health...)
+
+	return *web.NewGinServer(r...)
 }
