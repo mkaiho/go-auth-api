@@ -1,12 +1,16 @@
 import * as cdk from 'aws-cdk-lib';
-import { Tags } from 'aws-cdk-lib';
+import { Stack, Tags } from 'aws-cdk-lib';
 import {
   CfnInternetGateway,
   CfnVPCGatewayAttachment,
   IpAddresses,
+  Peer,
+  Port,
+  SecurityGroup,
   Subnet,
   Vpc,
 } from 'aws-cdk-lib/aws-ec2';
+import { Role } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
@@ -26,6 +30,15 @@ export class GoAuthApiStack extends cdk.Stack {
       .trim();
 
     /**
+     * Role
+     */
+    const executionRole = Role.fromRoleArn(
+      this,
+      `ecsTaskExecutionRole`,
+      `arn:aws:iam::${Stack.of(this).account}:role/ecsTaskExecutionRole`
+    )
+
+    /**
      * VPC
      */
     const vpc = new Vpc(this, `${context.name}-vpc`, {
@@ -36,6 +49,22 @@ export class GoAuthApiStack extends cdk.Stack {
       subnetConfiguration: [],
       ipAddresses: IpAddresses.cidr("10.0.0.0/16")
     });
+
+    /**
+     * Security Group
+     */
+    const albSg = new SecurityGroup(this, `${context.name}-alb-sg`, {
+      vpc,
+      allowAllOutbound: true,
+      securityGroupName: `${context.name}-alb-sg`,
+    });
+    albSg.addIngressRule(Peer.anyIpv4(), Port.tcp(80));
+    const apiServiceSg = new SecurityGroup(this, `${context.name}-api-service-sg`, {
+      vpc,
+      allowAllOutbound: true,
+      securityGroupName: `${context.name}-api-server-sg`,
+    });
+    apiServiceSg.connections.allowFrom(albSg, Port.tcp(3000), 'Allow alb access')
 
     /**
      * Gateway

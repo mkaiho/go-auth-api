@@ -10,6 +10,70 @@ exports[`snapshot test 1`] = `
     },
   },
   "Resources": {
+    "goauthapialbsgF17A1428": {
+      "Properties": {
+        "GroupDescription": "TestStack/go-auth-api-alb-sg",
+        "GroupName": "go-auth-api-alb-sg",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "from 0.0.0.0/0:80",
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "ToPort": 80,
+          },
+        ],
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "goauthapiapiservicesg93420926": {
+      "Properties": {
+        "GroupDescription": "TestStack/go-auth-api-api-service-sg",
+        "GroupName": "go-auth-api-api-server-sg",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "goauthapiapiservicesgfromTestStackgoauthapialbsg86DB1AB5300046D199CD": {
+      "Properties": {
+        "Description": "Allow alb access",
+        "FromPort": 3000,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "goauthapiapiservicesg93420926",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "goauthapialbsgF17A1428",
+            "GroupId",
+          ],
+        },
+        "ToPort": 3000,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
     "goauthapiappprivatesubnetRouteTable58DD87C2": {
       "Properties": {
         "Tags": [
