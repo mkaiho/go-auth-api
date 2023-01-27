@@ -10,6 +10,69 @@ exports[`snapshot test 1`] = `
     },
   },
   "Resources": {
+    "ecsTaskExecutionRolePolicyTestStackecsTaskExecutionRoleAB894092E9C7AA41": {
+      "Properties": {
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": [
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition",
+                    },
+                    ":ecr:",
+                    {
+                      "Ref": "AWS::Region",
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId",
+                    },
+                    ":repository/",
+                    {
+                      "Fn::Sub": "cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}",
+                    },
+                  ],
+                ],
+              },
+            },
+            {
+              "Action": "ecr:GetAuthorizationToken",
+              "Effect": "Allow",
+              "Resource": "*",
+            },
+            {
+              "Action": [
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+              ],
+              "Effect": "Allow",
+              "Resource": {
+                "Fn::GetAtt": [
+                  "goauthapilog92D7EFB8",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "PolicyTestStackecsTaskExecutionRoleAB894092",
+        "Roles": [
+          "ecsTaskExecutionRole",
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
     "goauthapialbsgF17A1428": {
       "Properties": {
         "GroupDescription": "TestStack/go-auth-api-alb-sg",
@@ -35,44 +98,6 @@ exports[`snapshot test 1`] = `
         },
       },
       "Type": "AWS::EC2::SecurityGroup",
-    },
-    "goauthapiapiservicesg93420926": {
-      "Properties": {
-        "GroupDescription": "TestStack/go-auth-api-api-service-sg",
-        "GroupName": "go-auth-api-api-server-sg",
-        "SecurityGroupEgress": [
-          {
-            "CidrIp": "0.0.0.0/0",
-            "Description": "Allow all outbound traffic by default",
-            "IpProtocol": "-1",
-          },
-        ],
-        "VpcId": {
-          "Ref": "goauthapivpc70352260",
-        },
-      },
-      "Type": "AWS::EC2::SecurityGroup",
-    },
-    "goauthapiapiservicesgfromTestStackgoauthapialbsg86DB1AB5300046D199CD": {
-      "Properties": {
-        "Description": "Allow alb access",
-        "FromPort": 3000,
-        "GroupId": {
-          "Fn::GetAtt": [
-            "goauthapiapiservicesg93420926",
-            "GroupId",
-          ],
-        },
-        "IpProtocol": "tcp",
-        "SourceSecurityGroupId": {
-          "Fn::GetAtt": [
-            "goauthapialbsgF17A1428",
-            "GroupId",
-          ],
-        },
-        "ToPort": 3000,
-      },
-      "Type": "AWS::EC2::SecurityGroupIngress",
     },
     "goauthapiappprivatesubnetRouteTable58DD87C2": {
       "Properties": {
@@ -173,6 +198,12 @@ exports[`snapshot test 1`] = `
       },
       "Type": "AWS::EC2::Subnet",
     },
+    "goauthapiclusterA00E79D9": {
+      "Properties": {
+        "ClusterName": "go-auth-api-cluster",
+      },
+      "Type": "AWS::ECS::Cluster",
+    },
     "goauthapiigw": {
       "Properties": {
         "Tags": [
@@ -195,6 +226,217 @@ exports[`snapshot test 1`] = `
       },
       "Type": "AWS::EC2::VPCGatewayAttachment",
     },
+    "goauthapilog92D7EFB8": {
+      "DeletionPolicy": "Delete",
+      "Properties": {
+        "LogGroupName": "/aws/cdk/ecs-alb-fargate-service/web",
+        "RetentionInDays": 1,
+      },
+      "Type": "AWS::Logs::LogGroup",
+      "UpdateReplacePolicy": "Delete",
+    },
+    "goauthapiserviceServiceBF0B3AF3": {
+      "Properties": {
+        "Cluster": {
+          "Ref": "goauthapiclusterA00E79D9",
+        },
+        "DeploymentConfiguration": {
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 50,
+        },
+        "EnableECSManagedTags": false,
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "DISABLED",
+            "SecurityGroups": [
+              {
+                "Fn::GetAtt": [
+                  "goauthapiservicesgC5DDA15E",
+                  "GroupId",
+                ],
+              },
+            ],
+            "Subnets": [
+              {
+                "Ref": "goauthapiappprivatesubnetSubnet262F9611",
+              },
+            ],
+          },
+        },
+        "ServiceName": "go-auth-api-service",
+        "TaskDefinition": {
+          "Ref": "goauthapitask973C00CB",
+        },
+      },
+      "Type": "AWS::ECS::Service",
+    },
+    "goauthapiservicesgC5DDA15E": {
+      "Properties": {
+        "GroupDescription": "TestStack/go-auth-api-service-sg",
+        "GroupName": "go-auth-api-service-sg",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1",
+          },
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": {
+              "Fn::GetAtt": [
+                "goauthapivpc70352260",
+                "CidrBlock",
+              ],
+            },
+            "Description": {
+              "Fn::Join": [
+                "",
+                [
+                  "from ",
+                  {
+                    "Fn::GetAtt": [
+                      "goauthapivpc70352260",
+                      "CidrBlock",
+                    ],
+                  },
+                  ":443",
+                ],
+              ],
+            },
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443,
+          },
+        ],
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::SecurityGroup",
+    },
+    "goauthapiservicesgfromTestStackgoauthapialbsg86DB1AB53000D2F9394B": {
+      "Properties": {
+        "Description": "Allow alb access",
+        "FromPort": 3000,
+        "GroupId": {
+          "Fn::GetAtt": [
+            "goauthapiservicesgC5DDA15E",
+            "GroupId",
+          ],
+        },
+        "IpProtocol": "tcp",
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "goauthapialbsgF17A1428",
+            "GroupId",
+          ],
+        },
+        "ToPort": 3000,
+      },
+      "Type": "AWS::EC2::SecurityGroupIngress",
+    },
+    "goauthapitask973C00CB": {
+      "Properties": {
+        "ContainerDefinitions": [
+          {
+            "Command": [
+              "cmd/auth-api-server",
+            ],
+            "Essential": true,
+            "Image": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::AccountId",
+                  },
+                  ".dkr.ecr.",
+                  {
+                    "Ref": "AWS::Region",
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix",
+                  },
+                  "/",
+                  {
+                    "Fn::Sub": "cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}",
+                  },
+                  ":41b325b404e544cfd8ea486c65a89818b2838907",
+                ],
+              ],
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "goauthapilog92D7EFB8",
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region",
+                },
+                "awslogs-stream-prefix": "ecs",
+              },
+            },
+            "Name": "go-auth-api",
+            "PortMappings": [
+              {
+                "AppProtocol": "http",
+                "ContainerPort": 3000,
+                "HostPort": 3000,
+                "Name": "http-port-mapping",
+                "Protocol": "tcp",
+              },
+            ],
+          },
+        ],
+        "Cpu": "256",
+        "ExecutionRoleArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:aws:iam::",
+              {
+                "Ref": "AWS::AccountId",
+              },
+              ":role/ecsTaskExecutionRole",
+            ],
+          ],
+        },
+        "Family": "go-auth-api-task",
+        "Memory": "512",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE",
+        ],
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "goauthapitaskTaskRole4F553A1F",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::ECS::TaskDefinition",
+    },
+    "goauthapitaskTaskRole4F553A1F": {
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Statement": [
+            {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
     "goauthapivpc70352260": {
       "Properties": {
         "CidrBlock": "10.0.0.0/16",
@@ -209,6 +451,137 @@ exports[`snapshot test 1`] = `
         ],
       },
       "Type": "AWS::EC2::VPC",
+    },
+    "goauthapivpceecrapi50EF525F": {
+      "Properties": {
+        "PrivateDnsEnabled": true,
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "goauthapiservicesgC5DDA15E",
+              "GroupId",
+            ],
+          },
+        ],
+        "ServiceName": {
+          "Fn::Join": [
+            "",
+            [
+              "com.amazonaws.",
+              {
+                "Ref": "AWS::Region",
+              },
+              ".ecr.api",
+            ],
+          ],
+        },
+        "SubnetIds": [
+          {
+            "Ref": "goauthapiappprivatesubnetSubnet262F9611",
+          },
+        ],
+        "VpcEndpointType": "Interface",
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::VPCEndpoint",
+    },
+    "goauthapivpceecrdkr34864192": {
+      "Properties": {
+        "PrivateDnsEnabled": true,
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "goauthapiservicesgC5DDA15E",
+              "GroupId",
+            ],
+          },
+        ],
+        "ServiceName": {
+          "Fn::Join": [
+            "",
+            [
+              "com.amazonaws.",
+              {
+                "Ref": "AWS::Region",
+              },
+              ".ecr.dkr",
+            ],
+          ],
+        },
+        "SubnetIds": [
+          {
+            "Ref": "goauthapiappprivatesubnetSubnet262F9611",
+          },
+        ],
+        "VpcEndpointType": "Interface",
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::VPCEndpoint",
+    },
+    "goauthapivpcelogs51747E4F": {
+      "Properties": {
+        "PrivateDnsEnabled": true,
+        "SecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "goauthapiservicesgC5DDA15E",
+              "GroupId",
+            ],
+          },
+        ],
+        "ServiceName": {
+          "Fn::Join": [
+            "",
+            [
+              "com.amazonaws.",
+              {
+                "Ref": "AWS::Region",
+              },
+              ".logs",
+            ],
+          ],
+        },
+        "SubnetIds": [
+          {
+            "Ref": "goauthapiappprivatesubnetSubnet262F9611",
+          },
+        ],
+        "VpcEndpointType": "Interface",
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::VPCEndpoint",
+    },
+    "goauthapivpces39B399B6F": {
+      "Properties": {
+        "RouteTableIds": [
+          {
+            "Ref": "goauthapiappprivatesubnetRouteTable58DD87C2",
+          },
+        ],
+        "ServiceName": {
+          "Fn::Join": [
+            "",
+            [
+              "com.amazonaws.",
+              {
+                "Ref": "AWS::Region",
+              },
+              ".s3",
+            ],
+          ],
+        },
+        "VpcEndpointType": "Gateway",
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::VPCEndpoint",
     },
   },
   "Rules": {

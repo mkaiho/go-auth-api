@@ -3,6 +3,10 @@ import { Stack, Tags } from 'aws-cdk-lib';
 import {
   CfnInternetGateway,
   CfnVPCGatewayAttachment,
+  GatewayVpcEndpoint,
+  GatewayVpcEndpointAwsService,
+  InterfaceVpcEndpoint,
+  InterfaceVpcEndpointAwsService,
   IpAddresses,
   Peer,
   Port,
@@ -10,7 +14,10 @@ import {
   Subnet,
   Vpc,
 } from 'aws-cdk-lib/aws-ec2';
+import { Repository } from 'aws-cdk-lib/aws-ecr';
+import { AppProtocol, Cluster, Compatibility, ContainerImage, TaskDefinition, Protocol, FargateService, AwsLogDriver } from 'aws-cdk-lib/aws-ecs';
 import { Role } from 'aws-cdk-lib/aws-iam';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 
@@ -59,10 +66,10 @@ export class GoAuthApiStack extends cdk.Stack {
       securityGroupName: `${context.name}-alb-sg`,
     });
     albSg.addIngressRule(Peer.anyIpv4(), Port.tcp(80));
-    const apiServiceSg = new SecurityGroup(this, `${context.name}-api-service-sg`, {
+    const apiServiceSg = new SecurityGroup(this, `${context.name}-service-sg`, {
       vpc,
       allowAllOutbound: true,
-      securityGroupName: `${context.name}-api-server-sg`,
+      securityGroupName: `${context.name}-service-sg`,
     });
     apiServiceSg.connections.allowFrom(albSg, Port.tcp(3000), 'Allow alb access')
 
@@ -102,11 +109,123 @@ export class GoAuthApiStack extends cdk.Stack {
     Tags.of(apPrivateSubnet).add('Name', `${context.name}-app-private-subnet`)
 
     /**
+     * VPC Endpoint
+     */
+    const ecrDockerVpce = new InterfaceVpcEndpoint(
+      this,
+      `${context.name}-vpce-ecr-dkr`,
+      {
+        service: InterfaceVpcEndpointAwsService.ECR_DOCKER,
+        vpc: vpc,
+        open: true,
+        privateDnsEnabled: true,
+        securityGroups: [apiServiceSg],
+        subnets: {
+          subnets: [apPrivateSubnet],
+        },
+      }
+    );
+    const ecrApiVpce = new InterfaceVpcEndpoint(
+      this,
+      `${context.name}-vpce-ecr-api`,
+      {
+        service: InterfaceVpcEndpointAwsService.ECR,
+        vpc: vpc,
+        open: true,
+        privateDnsEnabled: true,
+        securityGroups: [apiServiceSg],
+        subnets: {
+          subnets: [apPrivateSubnet],
+        },
+      }
+    );
+    const logsVpce = new InterfaceVpcEndpoint(
+      this,
+      `${context.name}-vpce-logs`,
+      {
+        service: InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+        vpc: vpc,
+        open: true,
+        privateDnsEnabled: true,
+        securityGroups: [apiServiceSg],
+        subnets: {
+          subnets: [apPrivateSubnet],
+        },
+      }
+    );
+    const s3Vpce = new GatewayVpcEndpoint(this, `${context.name}-vpce-s3`, {
+      service: GatewayVpcEndpointAwsService.S3,
+      vpc: vpc,
+      subnets: [
+        {
+          subnets: [apPrivateSubnet],
+        },
+      ],
+    });
+
+    /**
      * ECR
      */
     const image = this.synthesizer.addDockerImageAsset({
       sourceHash: revision,
       directoryName: `${__dirname}/../../../`,
     });
+
+    /**
+     * Log group
+     */
+    const logGroup = new LogGroup(this, `${context.name}-log`, {
+      logGroupName: '/aws/cdk/ecs-alb-fargate-service/web',
+      retention: RetentionDays.ONE_DAY,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    })
+
+    /**
+     * ECS
+     */
+    const cluster = new Cluster(this, `${context.name}-cluster`, {
+      clusterName: `${context.name}-cluster`,
+      vpc: vpc,
+    })
+    const taskDefinition = new TaskDefinition(this, `${context.name}-task`, {
+      compatibility: Compatibility.FARGATE,
+      cpu: "256",
+      memoryMiB: "512",
+      family: `${context.name}-task`,
+      executionRole: executionRole,
+    })
+    taskDefinition.addContainer(`${context.name}-container`, {
+      containerName: `${context.name}`,
+      image: ContainerImage.fromEcrRepository(
+        Repository.fromRepositoryName(this, `${context.name}-repo`, image.repositoryName), revision
+      ),
+      command: ["cmd/auth-api-server"],
+      portMappings: [
+        {
+          name: "http-port-mapping",
+          hostPort: 3000,
+          containerPort: 3000,
+          appProtocol: AppProtocol.http,
+          protocol: Protocol.TCP,
+        },
+      ],
+      logging: new AwsLogDriver({
+        streamPrefix: 'ecs',
+        logGroup: logGroup,
+      }),
+    })
+    const service = new FargateService(this, `${context.name}-service`, {
+      serviceName: `${context.name}-service`,
+      cluster,
+      taskDefinition,
+      vpcSubnets: {
+        subnets: [
+          apPrivateSubnet,
+        ],
+      },
+      securityGroups: [
+        apiServiceSg,
+      ],
+    })
   }
 }
