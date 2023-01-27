@@ -73,6 +73,60 @@ exports[`snapshot test 1`] = `
       },
       "Type": "AWS::IAM::Policy",
     },
+    "goauthapialb7417EE95": {
+      "DependsOn": [
+        "goauthapiapppublicsubnet1aDefaultRoute062449F5",
+        "goauthapiapppublicsubnet1aRouteTableAssociation2B6018D6",
+        "goauthapiapppublicsubnet1cDefaultRouteCB680EBF",
+        "goauthapiapppublicsubnet1cRouteTableAssociationA0868B6A",
+      ],
+      "Properties": {
+        "LoadBalancerAttributes": [
+          {
+            "Key": "deletion_protection.enabled",
+            "Value": "false",
+          },
+        ],
+        "Name": "go-auth-api-alb",
+        "Scheme": "internet-facing",
+        "SecurityGroups": [
+          {
+            "Fn::GetAtt": [
+              "goauthapialbsgF17A1428",
+              "GroupId",
+            ],
+          },
+        ],
+        "Subnets": [
+          {
+            "Ref": "goauthapiapppublicsubnet1aSubnet35BBFA9E",
+          },
+          {
+            "Ref": "goauthapiapppublicsubnet1cSubnet13708802",
+          },
+        ],
+        "Type": "application",
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+    },
+    "goauthapialbgoauthapialbhttplistener5449924C": {
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "goauthapialbtargetgroupD6F4F6F0",
+            },
+            "Type": "forward",
+          },
+        ],
+        "LoadBalancerArn": {
+          "Ref": "goauthapialb7417EE95",
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+    },
     "goauthapialbsgF17A1428": {
       "Properties": {
         "GroupDescription": "TestStack/go-auth-api-alb-sg",
@@ -98,6 +152,29 @@ exports[`snapshot test 1`] = `
         },
       },
       "Type": "AWS::EC2::SecurityGroup",
+    },
+    "goauthapialbtargetgroupD6F4F6F0": {
+      "Properties": {
+        "HealthCheckIntervalSeconds": 60,
+        "HealthCheckPath": "/health",
+        "Matcher": {
+          "HttpCode": "200",
+        },
+        "Name": "go-auth-api-alb-target-group",
+        "Port": 3000,
+        "Protocol": "HTTP",
+        "TargetGroupAttributes": [
+          {
+            "Key": "stickiness.enabled",
+            "Value": "false",
+          },
+        ],
+        "TargetType": "ip",
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
     },
     "goauthapiappprivatesubnetRouteTable58DD87C2": {
       "Properties": {
@@ -127,7 +204,7 @@ exports[`snapshot test 1`] = `
     "goauthapiappprivatesubnetSubnet262F9611": {
       "Properties": {
         "AvailabilityZone": "ap-northeast-1a",
-        "CidrBlock": "10.0.1.0/24",
+        "CidrBlock": "10.0.11.0/24",
         "MapPublicIpOnLaunch": false,
         "Tags": [
           {
@@ -141,7 +218,7 @@ exports[`snapshot test 1`] = `
       },
       "Type": "AWS::EC2::Subnet",
     },
-    "goauthapiapppublicsubnetDefaultRouteE94367FB": {
+    "goauthapiapppublicsubnet1aDefaultRoute062449F5": {
       "DependsOn": [
         "goauthapiigwattachment",
       ],
@@ -151,28 +228,17 @@ exports[`snapshot test 1`] = `
           "Ref": "goauthapiigw",
         },
         "RouteTableId": {
-          "Ref": "goauthapiapppublicsubnetRouteTableB08D9E9C",
+          "Ref": "goauthapiapppublicsubnet1aRouteTable324B777C",
         },
       },
       "Type": "AWS::EC2::Route",
     },
-    "goauthapiapppublicsubnetRouteTableAssociation0AACFC00": {
-      "Properties": {
-        "RouteTableId": {
-          "Ref": "goauthapiapppublicsubnetRouteTableB08D9E9C",
-        },
-        "SubnetId": {
-          "Ref": "goauthapiapppublicsubnetSubnetBEB5997A",
-        },
-      },
-      "Type": "AWS::EC2::SubnetRouteTableAssociation",
-    },
-    "goauthapiapppublicsubnetRouteTableB08D9E9C": {
+    "goauthapiapppublicsubnet1aRouteTable324B777C": {
       "Properties": {
         "Tags": [
           {
             "Key": "Name",
-            "Value": "go-auth-api-app-public-subnet",
+            "Value": "go-auth-api-app-public-subnet-1a",
           },
         ],
         "VpcId": {
@@ -181,15 +247,83 @@ exports[`snapshot test 1`] = `
       },
       "Type": "AWS::EC2::RouteTable",
     },
-    "goauthapiapppublicsubnetSubnetBEB5997A": {
+    "goauthapiapppublicsubnet1aRouteTableAssociation2B6018D6": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "goauthapiapppublicsubnet1aRouteTable324B777C",
+        },
+        "SubnetId": {
+          "Ref": "goauthapiapppublicsubnet1aSubnet35BBFA9E",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "goauthapiapppublicsubnet1aSubnet35BBFA9E": {
       "Properties": {
         "AvailabilityZone": "ap-northeast-1a",
-        "CidrBlock": "10.0.0.0/24",
+        "CidrBlock": "10.0.1.0/24",
         "MapPublicIpOnLaunch": true,
         "Tags": [
           {
             "Key": "Name",
-            "Value": "go-auth-api-app-public-subnet",
+            "Value": "go-auth-api-app-public-subnet-1a",
+          },
+        ],
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::Subnet",
+    },
+    "goauthapiapppublicsubnet1cDefaultRouteCB680EBF": {
+      "DependsOn": [
+        "goauthapiigwattachment",
+      ],
+      "Properties": {
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": {
+          "Ref": "goauthapiigw",
+        },
+        "RouteTableId": {
+          "Ref": "goauthapiapppublicsubnet1cRouteTable33262C05",
+        },
+      },
+      "Type": "AWS::EC2::Route",
+    },
+    "goauthapiapppublicsubnet1cRouteTable33262C05": {
+      "Properties": {
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "go-auth-api-app-public-subnet-1c",
+          },
+        ],
+        "VpcId": {
+          "Ref": "goauthapivpc70352260",
+        },
+      },
+      "Type": "AWS::EC2::RouteTable",
+    },
+    "goauthapiapppublicsubnet1cRouteTableAssociationA0868B6A": {
+      "Properties": {
+        "RouteTableId": {
+          "Ref": "goauthapiapppublicsubnet1cRouteTable33262C05",
+        },
+        "SubnetId": {
+          "Ref": "goauthapiapppublicsubnet1cSubnet13708802",
+        },
+      },
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+    },
+    "goauthapiapppublicsubnet1cSubnet13708802": {
+      "Properties": {
+        "AvailabilityZone": "ap-northeast-1c",
+        "CidrBlock": "10.0.2.0/24",
+        "MapPublicIpOnLaunch": true,
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "go-auth-api-app-public-subnet-1c",
           },
         ],
         "VpcId": {
@@ -236,6 +370,9 @@ exports[`snapshot test 1`] = `
       "UpdateReplacePolicy": "Delete",
     },
     "goauthapiserviceServiceBF0B3AF3": {
+      "DependsOn": [
+        "goauthapialbgoauthapialbhttplistener5449924C",
+      ],
       "Properties": {
         "Cluster": {
           "Ref": "goauthapiclusterA00E79D9",
@@ -245,7 +382,17 @@ exports[`snapshot test 1`] = `
           "MinimumHealthyPercent": 50,
         },
         "EnableECSManagedTags": false,
+        "HealthCheckGracePeriodSeconds": 60,
         "LaunchType": "FARGATE",
+        "LoadBalancers": [
+          {
+            "ContainerName": "go-auth-api",
+            "ContainerPort": 3000,
+            "TargetGroupArn": {
+              "Ref": "goauthapialbtargetgroupD6F4F6F0",
+            },
+          },
+        ],
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "AssignPublicIp": "DISABLED",
@@ -364,7 +511,7 @@ exports[`snapshot test 1`] = `
                   {
                     "Fn::Sub": "cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}",
                   },
-                  ":41b325b404e544cfd8ea486c65a89818b2838907",
+                  ":cacd9973f1151f392b2eb329c107dbded012ce8c",
                 ],
               ],
             },

@@ -1,25 +1,14 @@
 import * as cdk from 'aws-cdk-lib';
 import { Stack, Tags } from 'aws-cdk-lib';
-import {
-  CfnInternetGateway,
-  CfnVPCGatewayAttachment,
-  GatewayVpcEndpoint,
-  GatewayVpcEndpointAwsService,
-  InterfaceVpcEndpoint,
-  InterfaceVpcEndpointAwsService,
-  IpAddresses,
-  Peer,
-  Port,
-  SecurityGroup,
-  Subnet,
-  Vpc,
-} from 'aws-cdk-lib/aws-ec2';
-import { Repository } from 'aws-cdk-lib/aws-ecr';
-import { AppProtocol, Cluster, Compatibility, ContainerImage, TaskDefinition, Protocol, FargateService, AwsLogDriver } from 'aws-cdk-lib/aws-ecs';
-import { Role } from 'aws-cdk-lib/aws-iam';
-import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
-// import * as sqs from 'aws-cdk-lib/aws-sqs';
+import {
+  aws_ec2 as ec2,
+  aws_ecr as ecr,
+  aws_ecs as ecs,
+  aws_elasticloadbalancingv2 as elb,
+  aws_iam as iam,
+  aws_logs as logs,
+} from 'aws-cdk-lib';
 
 interface StageContext {
   name: string;
@@ -39,7 +28,7 @@ export class GoAuthApiStack extends cdk.Stack {
     /**
      * Role
      */
-    const executionRole = Role.fromRoleArn(
+    const executionRole = iam.Role.fromRoleArn(
       this,
       `ecsTaskExecutionRole`,
       `arn:aws:iam::${Stack.of(this).account}:role/ecsTaskExecutionRole`
@@ -48,35 +37,35 @@ export class GoAuthApiStack extends cdk.Stack {
     /**
      * VPC
      */
-    const vpc = new Vpc(this, `${context.name}-vpc`, {
+    const vpc = new ec2.Vpc(this, `${context.name}-vpc`, {
       vpcName: `${context.name}-vpc`,
       enableDnsHostnames: true,
       enableDnsSupport: true,
       natGateways: 0,
       subnetConfiguration: [],
-      ipAddresses: IpAddresses.cidr("10.0.0.0/16")
+      ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16")
     });
 
     /**
      * Security Group
      */
-    const albSg = new SecurityGroup(this, `${context.name}-alb-sg`, {
+    const albSg = new ec2.SecurityGroup(this, `${context.name}-alb-sg`, {
       vpc,
       allowAllOutbound: true,
       securityGroupName: `${context.name}-alb-sg`,
     });
-    albSg.addIngressRule(Peer.anyIpv4(), Port.tcp(80));
-    const apiServiceSg = new SecurityGroup(this, `${context.name}-service-sg`, {
+    albSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(80));
+    const apiServiceSg = new ec2.SecurityGroup(this, `${context.name}-service-sg`, {
       vpc,
       allowAllOutbound: true,
       securityGroupName: `${context.name}-service-sg`,
     });
-    apiServiceSg.connections.allowFrom(albSg, Port.tcp(3000), 'Allow alb access')
+    apiServiceSg.connections.allowFrom(albSg, ec2.Port.tcp(3000), 'Allow alb access')
 
     /**
      * Gateway
      */
-    const igw = new CfnInternetGateway(this, `${context.name}-igw`, {
+    const igw = new ec2.CfnInternetGateway(this, `${context.name}-igw`, {
       tags: [
         {
           key: "Name",
@@ -84,7 +73,7 @@ export class GoAuthApiStack extends cdk.Stack {
         },
       ],
     })
-    const igwAttachment = new CfnVPCGatewayAttachment(this, `${context.name}-igw-attachment`, {
+    const igwAttachment = new ec2.CfnVPCGatewayAttachment(this, `${context.name}-igw-attachment`, {
       vpcId: vpc.vpcId,
       internetGatewayId: igw.ref,
     })
@@ -92,17 +81,22 @@ export class GoAuthApiStack extends cdk.Stack {
     /**
      * Subnet
      */
-    const appPublicSubnet = new Subnet(this, `${context.name}-app-public-subnet`, {
-      vpcId: vpc.vpcId,
-      cidrBlock: "10.0.0.0/24",
-      availabilityZone: "ap-northeast-1a",
-      mapPublicIpOnLaunch: true,
+    const appAvailabilityZones = ["ap-northeast-1a", "ap-northeast-1c"]
+    const apPublicSubnets = appAvailabilityZones.map((az, i) => {
+      const azSuffix = az.replace(/^.*-/, "")
+      const appPublicSubnet = new ec2.Subnet(this, `${context.name}-app-public-subnet-${azSuffix}`, {
+        vpcId: vpc.vpcId,
+        cidrBlock: `10.0.${i + 1}.0/24`,
+        availabilityZone: az,
+        mapPublicIpOnLaunch: true,
+      })
+      appPublicSubnet.addDefaultInternetRoute(igw.ref, igwAttachment)
+      Tags.of(appPublicSubnet).add('Name', `${context.name}-app-public-subnet-${azSuffix}`)
+      return appPublicSubnet
     })
-    appPublicSubnet.addDefaultInternetRoute(igw.ref, igwAttachment)
-    Tags.of(appPublicSubnet).add('Name', `${context.name}-app-public-subnet`)
-    const apPrivateSubnet = new Subnet(this, `${context.name}-app-private-subnet`, {
+    const apPrivateSubnet = new ec2.Subnet(this, `${context.name}-app-private-subnet`, {
       vpcId: vpc.vpcId,
-      cidrBlock: "10.0.1.0/24",
+      cidrBlock: "10.0.11.0/24",
       availabilityZone: "ap-northeast-1a",
       mapPublicIpOnLaunch: false,
     });
@@ -111,11 +105,11 @@ export class GoAuthApiStack extends cdk.Stack {
     /**
      * VPC Endpoint
      */
-    const ecrDockerVpce = new InterfaceVpcEndpoint(
+    const ecrDockerVpce = new ec2.InterfaceVpcEndpoint(
       this,
       `${context.name}-vpce-ecr-dkr`,
       {
-        service: InterfaceVpcEndpointAwsService.ECR_DOCKER,
+        service: ec2.InterfaceVpcEndpointAwsService.ECR_DOCKER,
         vpc: vpc,
         open: true,
         privateDnsEnabled: true,
@@ -125,11 +119,11 @@ export class GoAuthApiStack extends cdk.Stack {
         },
       }
     );
-    const ecrApiVpce = new InterfaceVpcEndpoint(
+    const ecrApiVpce = new ec2.InterfaceVpcEndpoint(
       this,
       `${context.name}-vpce-ecr-api`,
       {
-        service: InterfaceVpcEndpointAwsService.ECR,
+        service: ec2.InterfaceVpcEndpointAwsService.ECR,
         vpc: vpc,
         open: true,
         privateDnsEnabled: true,
@@ -139,11 +133,11 @@ export class GoAuthApiStack extends cdk.Stack {
         },
       }
     );
-    const logsVpce = new InterfaceVpcEndpoint(
+    const logsVpce = new ec2.InterfaceVpcEndpoint(
       this,
       `${context.name}-vpce-logs`,
       {
-        service: InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
+        service: ec2.InterfaceVpcEndpointAwsService.CLOUDWATCH_LOGS,
         vpc: vpc,
         open: true,
         privateDnsEnabled: true,
@@ -153,8 +147,8 @@ export class GoAuthApiStack extends cdk.Stack {
         },
       }
     );
-    const s3Vpce = new GatewayVpcEndpoint(this, `${context.name}-vpce-s3`, {
-      service: GatewayVpcEndpointAwsService.S3,
+    const s3Vpce = new ec2.GatewayVpcEndpoint(this, `${context.name}-vpce-s3`, {
+      service: ec2.GatewayVpcEndpointAwsService.S3,
       vpc: vpc,
       subnets: [
         {
@@ -174,21 +168,56 @@ export class GoAuthApiStack extends cdk.Stack {
     /**
      * Log group
      */
-    const logGroup = new LogGroup(this, `${context.name}-log`, {
+    const logGroup = new logs.LogGroup(this, `${context.name}-log`, {
       logGroupName: '/aws/cdk/ecs-alb-fargate-service/web',
-      retention: RetentionDays.ONE_DAY,
+      retention: logs.RetentionDays.ONE_DAY,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
+    })
+
+    /**
+     * ALB
+     */
+    const alb = new elb.ApplicationLoadBalancer(this, `${context.name}-alb`, {
+      vpc,
+      internetFacing: true,
+      securityGroup: albSg,
+      loadBalancerName: `${context.name}-alb`,
+      vpcSubnets: {
+        subnets: apPublicSubnets,
+      },
+    })
+    const httpListener = alb.addListener(`${context.name}-alb-http-listener`, {
+      open: true,
+      protocol: elb.ApplicationProtocol.HTTP,
+      port: 80,
+    })
+    const targetGroup = new elb.ApplicationTargetGroup(this, `${context.name}-alb-target-group`, {
+      vpc,
+      protocol: elb.ApplicationProtocol.HTTP,
+      targetType: elb.TargetType.IP,
+      targetGroupName: `${context.name}-alb-target-group`,
+      port: 3000,
+      healthCheck: {
+        path: "/health",
+        interval: cdk.Duration.seconds(60),
+        healthyHttpCodes: "200",
+      },
+    })
+    httpListener.addTargetGroups(`${context.name}-alb-http-target-group`, {
+      targetGroups: [
+        targetGroup,
+      ],
     })
 
     /**
      * ECS
      */
-    const cluster = new Cluster(this, `${context.name}-cluster`, {
+    const cluster = new ecs.Cluster(this, `${context.name}-cluster`, {
       clusterName: `${context.name}-cluster`,
       vpc: vpc,
     })
-    const taskDefinition = new TaskDefinition(this, `${context.name}-task`, {
-      compatibility: Compatibility.FARGATE,
+    const taskDefinition = new ecs.TaskDefinition(this, `${context.name}-task`, {
+      compatibility: ecs.Compatibility.FARGATE,
       cpu: "256",
       memoryMiB: "512",
       family: `${context.name}-task`,
@@ -196,8 +225,8 @@ export class GoAuthApiStack extends cdk.Stack {
     })
     taskDefinition.addContainer(`${context.name}-container`, {
       containerName: `${context.name}`,
-      image: ContainerImage.fromEcrRepository(
-        Repository.fromRepositoryName(this, `${context.name}-repo`, image.repositoryName), revision
+      image: ecs.ContainerImage.fromEcrRepository(
+        ecr.Repository.fromRepositoryName(this, `${context.name}-repo`, image.repositoryName), revision
       ),
       command: ["cmd/auth-api-server"],
       portMappings: [
@@ -205,16 +234,16 @@ export class GoAuthApiStack extends cdk.Stack {
           name: "http-port-mapping",
           hostPort: 3000,
           containerPort: 3000,
-          appProtocol: AppProtocol.http,
-          protocol: Protocol.TCP,
+          appProtocol: ecs.AppProtocol.http,
+          protocol: ecs.Protocol.TCP,
         },
       ],
-      logging: new AwsLogDriver({
+      logging: new ecs.AwsLogDriver({
         streamPrefix: 'ecs',
         logGroup: logGroup,
       }),
     })
-    const service = new FargateService(this, `${context.name}-service`, {
+    const service = new ecs.FargateService(this, `${context.name}-service`, {
       serviceName: `${context.name}-service`,
       cluster,
       taskDefinition,
@@ -227,5 +256,6 @@ export class GoAuthApiStack extends cdk.Stack {
         apiServiceSg,
       ],
     })
+    service.attachToApplicationTargetGroup(targetGroup)
   }
 }
