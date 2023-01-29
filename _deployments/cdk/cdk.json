@@ -39,9 +39,21 @@
     "@aws-cdk/aws-iam:importedRoleStackSafeDefaultPolicyName": true,
     "@aws-cdk/aws-s3:serverAccessLogsUseBucketPolicy": true,
     "@aws-cdk/aws-route53-patters:useCertificate": true,
-    "@aws-cdk/customresources:installLatestAwsSdkDefault": false
-  },
-  "stage": {
-    "name": "go-auth-api"
+    "@aws-cdk/customresources:installLatestAwsSdkDefault": false,
+    "stage": {
+      "name": "go-auth-api",
+      "dns": {
+        "zoneID": "Z081248124LL1E3CXPGTJ",
+        "zoneName": "<zone name>",
+        "domain": "<domain>"
+      },
+      "loadBalancer": {
+        "listener": {
+          "certificate": {
+            "ref": "74569e27-ef21-4729-a423-e0515fa983db"
+          }
+        }
+      }
+    }
   }
 }

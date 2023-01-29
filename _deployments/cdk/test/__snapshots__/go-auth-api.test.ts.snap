@@ -113,6 +113,42 @@ exports[`snapshot test 1`] = `
       "Properties": {
         "DefaultActions": [
           {
+            "RedirectConfig": {
+              "Port": "443",
+              "Protocol": "HTTPS",
+              "StatusCode": "HTTP_302",
+            },
+            "Type": "redirect",
+          },
+        ],
+        "LoadBalancerArn": {
+          "Ref": "goauthapialb7417EE95",
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+      },
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+    },
+    "goauthapialbgoauthapialbhttpslistener64C5C27A": {
+      "Properties": {
+        "Certificates": [
+          {
+            "CertificateArn": {
+              "Fn::Join": [
+                "",
+                [
+                  "arn:aws:acm:ap-northeast-1:",
+                  {
+                    "Ref": "AWS::AccountId",
+                  },
+                  ":certificate/74569e27-ef21-4729-a423-e0515fa983db",
+                ],
+              ],
+            },
+          },
+        ],
+        "DefaultActions": [
+          {
             "TargetGroupArn": {
               "Ref": "goauthapialbtargetgroupD6F4F6F0",
             },
@@ -122,8 +158,8 @@ exports[`snapshot test 1`] = `
         "LoadBalancerArn": {
           "Ref": "goauthapialb7417EE95",
         },
-        "Port": 80,
-        "Protocol": "HTTP",
+        "Port": 443,
+        "Protocol": "HTTPS",
       },
       "Type": "AWS::ElasticLoadBalancingV2::Listener",
     },
@@ -145,6 +181,13 @@ exports[`snapshot test 1`] = `
             "FromPort": 80,
             "IpProtocol": "tcp",
             "ToPort": 80,
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow from anyone on port 443",
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "ToPort": 443,
           },
         ],
         "VpcId": {
@@ -175,6 +218,36 @@ exports[`snapshot test 1`] = `
         },
       },
       "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+    },
+    "goauthapialiasrecordF03F939E": {
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": {
+            "Fn::Join": [
+              "",
+              [
+                "dualstack.",
+                {
+                  "Fn::GetAtt": [
+                    "goauthapialb7417EE95",
+                    "DNSName",
+                  ],
+                },
+              ],
+            ],
+          },
+          "HostedZoneId": {
+            "Fn::GetAtt": [
+              "goauthapialb7417EE95",
+              "CanonicalHostedZoneID",
+            ],
+          },
+        },
+        "HostedZoneId": "Z081248124LL1E3CXPGTJ",
+        "Name": "",
+        "Type": "A",
+      },
+      "Type": "AWS::Route53::RecordSet",
     },
     "goauthapiappprivatesubnetRouteTable58DD87C2": {
       "Properties": {
@@ -371,7 +444,7 @@ exports[`snapshot test 1`] = `
     },
     "goauthapiserviceServiceBF0B3AF3": {
       "DependsOn": [
-        "goauthapialbgoauthapialbhttplistener5449924C",
+        "goauthapialbgoauthapialbhttpslistener64C5C27A",
       ],
       "Properties": {
         "Cluster": {
@@ -511,7 +584,7 @@ exports[`snapshot test 1`] = `
                   {
                     "Fn::Sub": "cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}",
                   },
-                  ":cacd9973f1151f392b2eb329c107dbded012ce8c",
+                  ":16e01f61f4fcc7d0175982aab44814943510060a",
                 ],
               ],
             },

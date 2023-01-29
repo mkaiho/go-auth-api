@@ -11,7 +11,19 @@ test('snapshot test', () => {
     // WHEN
     const stack = new TestStack(app, 'TestStack');
     // THEN
-    const template = Template.fromStack(stack);
+    const template = function () {
+        const template = Template.fromStack(stack).toJSON();
+        // IGNORE
+        for (const resourceKey in template["Resources"]) {
+            const resource: { [key: string]: any } = template["Resources"][resourceKey]
+            const resourceType: string = resource["Type"]
+            const properties = resource["Properties"]
+            if (resourceType == "AWS::Route53::RecordSet" && properties["Type"] == "A") {
+                resource["Properties"]["Name"] = ""
+            }
+        }
+        return Template.fromJSON(template)
+    }()
 
     expect(template).toMatchSnapshot();
 });

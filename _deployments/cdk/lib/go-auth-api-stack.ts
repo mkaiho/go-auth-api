@@ -8,10 +8,27 @@ import {
   aws_elasticloadbalancingv2 as elb,
   aws_iam as iam,
   aws_logs as logs,
+  aws_route53 as route53,
+  aws_route53_targets as targets
 } from 'aws-cdk-lib';
 
+interface dns {
+  zoneID: string
+  zoneName: string
+  domain: string
+}
+interface certificate {
+  ref: string
+}
+interface loadBalancer {
+  listener: {
+    certificate: certificate
+  }
+}
 interface StageContext {
-  name: string;
+  name: string
+  dns: dns
+  loadBalancer: loadBalancer
 }
 
 export class GoAuthApiStack extends cdk.Stack {
@@ -24,6 +41,8 @@ export class GoAuthApiStack extends cdk.Stack {
       .execSync("git rev-parse HEAD")
       .toString()
       .trim();
+    context.dns.zoneName = process.env.ZONE_NAME || ""
+    context.dns.domain = process.env.DOMAIN || ""
 
     /**
      * Role
@@ -43,7 +62,7 @@ export class GoAuthApiStack extends cdk.Stack {
       enableDnsSupport: true,
       natGateways: 0,
       subnetConfiguration: [],
-      ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16")
+      ipAddresses: ec2.IpAddresses.cidr("10.0.0.0/16"),
     });
 
     /**
@@ -190,6 +209,20 @@ export class GoAuthApiStack extends cdk.Stack {
       open: true,
       protocol: elb.ApplicationProtocol.HTTP,
       port: 80,
+      defaultAction: elb.ListenerAction.redirect({
+        protocol: "HTTPS",
+        port: "443",
+      }),
+    })
+    const httpsListener = alb.addListener(`${context.name}-alb-https-listener`, {
+      open: true,
+      protocol: elb.ApplicationProtocol.HTTPS,
+      port: 443,
+      certificates: [
+        elb.ListenerCertificate.fromArn(
+          `arn:aws:acm:ap-northeast-1:${Stack.of(this).account}:certificate/${context.loadBalancer.listener.certificate.ref}`,
+        )
+      ],
     })
     const targetGroup = new elb.ApplicationTargetGroup(this, `${context.name}-alb-target-group`, {
       vpc,
@@ -203,10 +236,27 @@ export class GoAuthApiStack extends cdk.Stack {
         healthyHttpCodes: "200",
       },
     })
-    httpListener.addTargetGroups(`${context.name}-alb-http-target-group`, {
+    httpsListener.addTargetGroups(`${context.name}-alb-https-target-group`, {
       targetGroups: [
         targetGroup,
       ],
+    })
+
+    /**
+     * DNS
+     */
+    const hostedZone = route53.HostedZone.fromHostedZoneAttributes(
+      this,
+      `${context.name}-hosted-zone`,
+      {
+        hostedZoneId: context.dns.zoneID,
+        zoneName: context.dns.zoneName,
+      },
+    )
+    const aliasRecord = new route53.ARecord(this, `${context.name}-alias-record`, {
+      target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(alb)),
+      zone: hostedZone,
+      recordName: context.dns.domain,
     })
 
     /**
