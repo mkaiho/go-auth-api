@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mkaiho/go-auth-api/adapter/gateway"
+	"github.com/mkaiho/go-auth-api/adapter"
 	"github.com/mkaiho/go-auth-api/controller/web"
 	"github.com/mkaiho/go-auth-api/controller/web/handlers"
 	"github.com/mkaiho/go-auth-api/controller/web/routes"
@@ -102,8 +102,8 @@ func server() web.Server {
 		userCredentialGateway port.UserCredentialGateway
 	)
 	{
-		userGateway = gateway.NewStubUserGateway()
-		userCredentialGateway = gateway.NewStubUserCredentialGateway()
+		userGateway = adapter.NewStubUserGateway()
+		userCredentialGateway = adapter.NewStubUserCredentialGateway()
 	}
 	// interactors
 	var (
