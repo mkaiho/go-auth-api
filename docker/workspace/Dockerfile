@@ -2,10 +2,10 @@ FROM debian:bullseye
 
 SHELL ["/bin/bash", "-c"]
 
-ARG ASDF_VERSION=v0.10.2
-ARG DIRENV_VERSION=2.32.1
-ARG GO_VERSION=1.19.3
-ARG NODE_VERSION=18.12.0
+ARG ASDF_VERSION=v0.11.1
+ARG DIRENV_VERSION=2.32.2
+ARG GO_VERSION=1.20
+ARG NODE_VERSION=18.13.0
 ARG SRC_MODULE=github.com/mkaiho/go-auth-api
 
 RUN apt-get update -y && apt-get install -y \
