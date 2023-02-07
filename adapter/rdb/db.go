@@ -1,8 +1,10 @@
 package rdb
 
 import (
+	"context"
 	"errors"
-	// _ "github.com/go-sql-driver/mysql"
+
+	"github.com/mkaiho/go-auth-api/util"
 )
 
 var ErrInvalidDriverName = errors.New("driver name is unknown")
@@ -21,4 +23,9 @@ type Config interface {
 	GetDSN() string
 	GetMaxConns() int
 	GetDriverName() DriverName
+}
+
+func printQueryExecuted(ctx context.Context, query string, params ...interface{}) {
+	logger := util.FromContext(ctx)
+	logger.WithValues("query", query).WithValues("params", params).Debug("query executed")
 }

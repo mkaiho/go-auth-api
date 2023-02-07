@@ -1,6 +1,8 @@
 package rdb
 
-import "context"
+import (
+	"context"
+)
 
 type UserRow struct {
 	ID    string `db:"id" json:"id"`
@@ -9,21 +11,20 @@ type UserRow struct {
 }
 
 type UserAccess struct {
-	tx Transaction
 }
 
-func NewUserAccess(tx Transaction) *UserAccess {
-	return &UserAccess{
-		tx: tx,
-	}
+func NewUserAccess() *UserAccess {
+	return &UserAccess{}
 }
 
-func (a *UserAccess) Create(ctx context.Context, row *UserRow) error {
+func (a *UserAccess) Create(ctx context.Context, tx Transaction, row *UserRow) error {
 	query := `
 INSERT INTO users (id, name, email)
 VALUES (:id, :name, :email)
 `
-	_, err := a.tx.NamedExec(ctx, query, row)
+	defer printQueryExecuted(ctx, query, row)
+
+	_, err := tx.NamedExec(ctx, query, row)
 	if err != nil {
 		return err
 	}
