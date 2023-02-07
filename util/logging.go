@@ -189,7 +189,7 @@ func (l *LoggerZapImpl) WithValues(keysAndValues ...interface{}) Logger {
 }
 
 func (l *LoggerZapImpl) Debug(msg string, keysAndValues ...interface{}) {
-	l.logger.GetSink().Info(int(LoggerLevelDebug), msg)
+	l.logger.WithCallDepth(1).V(1).Info(msg, keysAndValues...)
 }
 
 func (l *LoggerZapImpl) Info(msg string, keysAndValues ...interface{}) {
@@ -197,7 +197,7 @@ func (l *LoggerZapImpl) Info(msg string, keysAndValues ...interface{}) {
 }
 
 func (l *LoggerZapImpl) Warn(err error, msg string, keysAndValues ...interface{}) {
-	l.logger.GetSink().Info(int(LoggerLevelWarn), msg, "error", err)
+	l.logger.GetSink().WithValues("error", err).Info(-int(LoggerLevelWarn), msg, keysAndValues...)
 }
 
 func (l *LoggerZapImpl) Error(err error, msg string, keysAndValues ...interface{}) {
@@ -239,7 +239,7 @@ func (l *LoggerStdImpl) Info(msg string, keysAndValues ...interface{}) {
 }
 
 func (l *LoggerStdImpl) Warn(err error, msg string, keysAndValues ...interface{}) {
-	l.logger.GetSink().Info(-int(LoggerLevelWarn), msg, "error", err)
+	l.logger.GetSink().WithValues("error", err).Info(-int(LoggerLevelWarn), msg, keysAndValues...)
 }
 
 func (l *LoggerStdImpl) Error(err error, msg string, keysAndValues ...interface{}) {
