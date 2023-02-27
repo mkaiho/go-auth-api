@@ -6,9 +6,13 @@ import (
 	"os"
 
 	"github.com/mkaiho/go-auth-api/adapter"
+	idAdapter "github.com/mkaiho/go-auth-api/adapter/id"
+	"github.com/mkaiho/go-auth-api/adapter/rdb"
+	rdbAdapter "github.com/mkaiho/go-auth-api/adapter/rdb"
 	"github.com/mkaiho/go-auth-api/controller/web"
 	"github.com/mkaiho/go-auth-api/controller/web/handlers"
 	"github.com/mkaiho/go-auth-api/controller/web/routes"
+	"github.com/mkaiho/go-auth-api/infrastructure"
 	"github.com/mkaiho/go-auth-api/usecase/interactor"
 	"github.com/mkaiho/go-auth-api/usecase/port"
 	"github.com/mkaiho/go-auth-api/util"
@@ -87,7 +91,11 @@ func handle(cmd *cobra.Command, args []string) (err error) {
 		return err
 	}
 
-	server := server()
+	server, err := server()
+	if err != nil {
+		return err
+	}
+
 	logger.
 		WithValues("host", host).
 		WithValues("port", port).
@@ -95,14 +103,36 @@ func handle(cmd *cobra.Command, args []string) (err error) {
 	return server.Run(fmt.Sprintf("%s:%d", "", port))
 }
 
-func server() web.Server {
+func server() (*web.Server, error) {
+	var err error
+	// infra
+	var (
+		rdb rdb.DB
+	)
+	{
+		var rdbConfig *infrastructure.MySQLConfig
+		rdbConfig, err = infrastructure.LoadMySQLConfig()
+		if err != nil {
+			return nil, err
+		}
+		rdb, err = infrastructure.OpenRDB(rdbConfig)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// ports
 	var (
+		txm                   port.TransactionManager
 		userGateway           port.UserGateway
 		userCredentialGateway port.UserCredentialGateway
 	)
 	{
-		userGateway = adapter.NewStubUserGateway()
+		txm = adapter.NewTransactionManager(&rdb)
+		userGateway = adapter.NewUserGateway(
+			idAdapter.NewULIDGenerator(),
+			rdbAdapter.NewUserAccess(),
+		)
 		userCredentialGateway = adapter.NewStubUserCredentialGateway()
 	}
 	// interactors
@@ -119,10 +149,10 @@ func server() web.Server {
 	// routes
 	var r routes.Routes
 	users := routes.NewUserRoutes(
-		handlers.NewUserFindHandler(userInteractor),
-		handlers.NewUserCreateHandler(userInteractor),
-		handlers.NewUserGetHandler(userInteractor),
-		handlers.NewUserUpdateHandler(userInteractor),
+		handlers.NewUserFindHandler(txm, userInteractor),
+		handlers.NewUserCreateHandler(txm, userInteractor),
+		handlers.NewUserGetHandler(txm, userInteractor),
+		handlers.NewUserUpdateHandler(txm, userInteractor),
 	)
 	r = append(r, users...)
 	health := routes.NewHealthRoutes(
@@ -130,5 +160,5 @@ func server() web.Server {
 	)
 	r = append(r, health...)
 
-	return *web.NewGinServer(r...)
+	return web.NewGinServer(r...), nil
 }

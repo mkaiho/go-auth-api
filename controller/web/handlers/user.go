@@ -8,6 +8,7 @@ import (
 	"github.com/mkaiho/go-auth-api/entity"
 	"github.com/mkaiho/go-auth-api/usecase"
 	"github.com/mkaiho/go-auth-api/usecase/interactor"
+	"github.com/mkaiho/go-auth-api/usecase/port"
 )
 
 // Create user
@@ -22,25 +23,49 @@ type (
 		Email string `json:"email"`
 	}
 	UserCreateHandler struct {
+		txm            port.TransactionManager
 		userInteractor interactor.UserInteractor
 	}
 )
 
-func NewUserCreateHandler(userInteractor interactor.UserInteractor) *UserCreateHandler {
+func NewUserCreateHandler(
+	txm port.TransactionManager,
+	userInteractor interactor.UserInteractor,
+) *UserCreateHandler {
 	return &UserCreateHandler{
+		txm:            txm,
 		userInteractor: userInteractor,
 	}
 }
 
 func (h *UserCreateHandler) Handle(gc *gin.Context) {
+	var err error
 	ctx := gc.Request.Context()
 	request := new(UserCreateRequest)
-	if err := ShouldBind(gc, request); err != nil {
+	if err = ShouldBind(gc, request); err != nil {
 		gc.Error(err).SetType(gin.ErrorTypeBind)
 		return
 	}
 
-	user, err := h.userInteractor.CreateUser(ctx, interactor.CreateUserInput{
+	ctx, err = h.txm.BeginContext(ctx)
+	if err != nil {
+		gc.Error(err)
+		return
+	}
+	defer func() {
+		if err != nil {
+			if rErr := h.txm.Rollback(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		} else {
+			if rErr := h.txm.End(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		}
+	}()
+
+	var user *entity.User
+	user, err = h.userInteractor.CreateUser(ctx, interactor.CreateUserInput{
 		Name:  request.Name,
 		Email: entity.Email(request.Email),
 	})
@@ -74,23 +99,46 @@ type (
 		Users []*UserFindResponseUser `json:"users"`
 	}
 	UserFindHandler struct {
+		txm            port.TransactionManager
 		userInteractor interactor.UserInteractor
 	}
 )
 
-func NewUserFindHandler(userInteractor interactor.UserInteractor) *UserFindHandler {
+func NewUserFindHandler(
+	txm port.TransactionManager,
+	userInteractor interactor.UserInteractor,
+) *UserFindHandler {
 	return &UserFindHandler{
+		txm:            txm,
 		userInteractor: userInteractor,
 	}
 }
 
 func (h *UserFindHandler) Handle(gc *gin.Context) {
+	var err error
 	ctx := gc.Request.Context()
 	request := new(UserFindRequest)
-	if err := ShouldBind(gc, request); err != nil {
+	if err = ShouldBind(gc, request); err != nil {
 		gc.Error(err).SetType(gin.ErrorTypeBind)
 		return
 	}
+
+	ctx, err = h.txm.BeginContext(ctx)
+	if err != nil {
+		gc.Error(err)
+		return
+	}
+	defer func() {
+		if err != nil {
+			if rErr := h.txm.Rollback(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		} else {
+			if rErr := h.txm.End(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		}
+	}()
 
 	users, err := h.userInteractor.FindUsers(ctx, interactor.FindUserInput{
 		Email: (*entity.Email)(request.Email),
@@ -123,25 +171,49 @@ type (
 		Email string `json:"email"`
 	}
 	UserGetHandler struct {
+		txm            port.TransactionManager
 		userInteractor interactor.UserInteractor
 	}
 )
 
-func NewUserGetHandler(userInteractor interactor.UserInteractor) *UserGetHandler {
+func NewUserGetHandler(
+	txm port.TransactionManager,
+	userInteractor interactor.UserInteractor,
+) *UserGetHandler {
 	return &UserGetHandler{
+		txm:            txm,
 		userInteractor: userInteractor,
 	}
 }
 
 func (h *UserGetHandler) Handle(gc *gin.Context) {
+	var err error
 	ctx := gc.Request.Context()
 	request := new(UserGetRequest)
-	if err := ShouldBind(gc, request); err != nil {
+	if err = ShouldBind(gc, request); err != nil {
 		gc.Error(err).SetType(gin.ErrorTypeBind)
 		return
 	}
 
-	user, err := h.userInteractor.GetUser(ctx, interactor.GetUserInput{
+	ctx, err = h.txm.BeginContext(ctx)
+	if err != nil {
+		gc.Error(err)
+		return
+	}
+	defer func() {
+		if err != nil {
+			if rErr := h.txm.Rollback(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		} else {
+			if rErr := h.txm.End(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		}
+	}()
+
+	var user *entity.User
+	user, err = h.userInteractor.GetUser(ctx, interactor.GetUserInput{
 		ID: entity.ID(request.ID),
 	})
 	if err != nil {
@@ -174,25 +246,49 @@ type (
 		Email string `json:"email"`
 	}
 	UserUpdateHandler struct {
+		txm            port.TransactionManager
 		userInteractor interactor.UserInteractor
 	}
 )
 
-func NewUserUpdateHandler(userInteractor interactor.UserInteractor) *UserUpdateHandler {
+func NewUserUpdateHandler(
+	txm port.TransactionManager,
+	userInteractor interactor.UserInteractor,
+) *UserUpdateHandler {
 	return &UserUpdateHandler{
+		txm:            txm,
 		userInteractor: userInteractor,
 	}
 }
 
 func (h *UserUpdateHandler) Handle(gc *gin.Context) {
+	var err error
 	ctx := gc.Request.Context()
 	request := new(UserUpdateRequest)
-	if err := ShouldBind(gc, request); err != nil {
+	if err = ShouldBind(gc, request); err != nil {
 		gc.Error(err).SetType(gin.ErrorTypeBind)
 		return
 	}
 
-	user, err := h.userInteractor.UpdateUser(ctx, interactor.UpdateUserInput{
+	ctx, err = h.txm.BeginContext(ctx)
+	if err != nil {
+		gc.Error(err)
+		return
+	}
+	defer func() {
+		if err != nil {
+			if rErr := h.txm.Rollback(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		} else {
+			if rErr := h.txm.End(ctx); rErr != nil {
+				gc.Error(rErr)
+			}
+		}
+	}()
+
+	var user *entity.User
+	user, err = h.userInteractor.UpdateUser(ctx, interactor.UpdateUserInput{
 		ID:    entity.ID(request.ID),
 		Name:  request.Name,
 		Email: entity.Email(request.Email),
