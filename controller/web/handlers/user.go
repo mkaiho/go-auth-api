@@ -23,18 +23,21 @@ type (
 		Email string `json:"email"`
 	}
 	UserCreateHandler struct {
-		txm            port.TransactionManager
-		userInteractor interactor.UserInteractor
+		txm             port.TransactionManager
+		passwordManager port.PasswordManager
+		userInteractor  interactor.UserInteractor
 	}
 )
 
 func NewUserCreateHandler(
 	txm port.TransactionManager,
+	passwordManager port.PasswordManager,
 	userInteractor interactor.UserInteractor,
 ) *UserCreateHandler {
 	return &UserCreateHandler{
-		txm:            txm,
-		userInteractor: userInteractor,
+		txm:             txm,
+		passwordManager: passwordManager,
+		userInteractor:  userInteractor,
 	}
 }
 
@@ -44,6 +47,16 @@ func (h *UserCreateHandler) Handle(gc *gin.Context) {
 	request := new(UserCreateRequest)
 	if err = ShouldBind(gc, request); err != nil {
 		gc.Error(err).SetType(gin.ErrorTypeBind)
+		return
+	}
+	auth, err := GetAuthInfo(gc)
+	if err != nil {
+		gc.Error(err)
+		return
+	}
+	password, err := h.passwordManager.Hash(ctx, auth.Password)
+	if err != nil {
+		gc.Error(err)
 		return
 	}
 
@@ -66,8 +79,9 @@ func (h *UserCreateHandler) Handle(gc *gin.Context) {
 
 	var user *entity.User
 	user, err = h.userInteractor.CreateUser(ctx, interactor.CreateUserInput{
-		Name:  request.Name,
-		Email: entity.Email(request.Email),
+		Name:     request.Name,
+		Email:    entity.Email(request.Email),
+		Password: password,
 	})
 	if err != nil {
 		gErr := gc.Error(err)

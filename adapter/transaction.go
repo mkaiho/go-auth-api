@@ -3,7 +3,6 @@ package adapter
 import (
 	"context"
 
-	"github.com/mkaiho/go-auth-api/adapter/rdb"
 	rdbAdapter "github.com/mkaiho/go-auth-api/adapter/rdb"
 	"github.com/mkaiho/go-auth-api/usecase/port"
 	"github.com/mkaiho/go-auth-api/util"
@@ -54,8 +53,8 @@ func (tm *TransactionManager) End(ctx context.Context) error {
 }
 
 func DoInTx[T any](
-	ctx context.Context, db rdb.DB,
-	fn func(ctx context.Context, tx rdb.Transaction) (T, error),
+	ctx context.Context, db rdbAdapter.DB,
+	fn func(ctx context.Context, tx rdbAdapter.Transaction) (T, error),
 ) (result T, err error) {
 	logger := util.FromContext(ctx)
 	tx, err := db.Begin()

@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/mkaiho/go-auth-api/adapter"
+	"github.com/mkaiho/go-auth-api/adapter/crypto"
 	idAdapter "github.com/mkaiho/go-auth-api/adapter/id"
-	"github.com/mkaiho/go-auth-api/adapter/rdb"
 	rdbAdapter "github.com/mkaiho/go-auth-api/adapter/rdb"
 	"github.com/mkaiho/go-auth-api/controller/web"
 	"github.com/mkaiho/go-auth-api/controller/web/handlers"
@@ -107,9 +107,11 @@ func server() (*web.Server, error) {
 	var err error
 	// infra
 	var (
-		rdb rdb.DB
+		rdb     rdbAdapter.DB
+		hashGen crypto.HashGenerator
 	)
 	{
+		// RDB
 		var rdbConfig *infrastructure.MySQLConfig
 		rdbConfig, err = infrastructure.LoadMySQLConfig()
 		if err != nil {
@@ -119,21 +121,30 @@ func server() (*web.Server, error) {
 		if err != nil {
 			return nil, err
 		}
+		// BCrypt
+		hashGen = crypto.NewBcryptoHashGenerator()
 	}
 
 	// ports
 	var (
 		txm                   port.TransactionManager
+		passwordManager       port.PasswordManager
 		userGateway           port.UserGateway
 		userCredentialGateway port.UserCredentialGateway
 	)
 	{
 		txm = adapter.NewTransactionManager(&rdb)
+		passwordManager = adapter.NewPasswordManager(hashGen)
 		userGateway = adapter.NewUserGateway(
 			idAdapter.NewULIDGenerator(),
 			rdbAdapter.NewUserAccess(),
 		)
-		userCredentialGateway = adapter.NewStubUserCredentialGateway()
+		userCredentialGateway = adapter.NewUserCredentialGateway(
+			idAdapter.NewULIDGenerator(),
+			passwordManager,
+			rdbAdapter.NewUserAccess(),
+			rdbAdapter.NewUserCredential(),
+		)
 	}
 	// interactors
 	var (
@@ -149,8 +160,10 @@ func server() (*web.Server, error) {
 	// routes
 	var r routes.Routes
 	users := routes.NewUserRoutes(
+		txm,
+		userCredentialGateway,
 		handlers.NewUserFindHandler(txm, userInteractor),
-		handlers.NewUserCreateHandler(txm, userInteractor),
+		handlers.NewUserCreateHandler(txm, passwordManager, userInteractor),
 		handlers.NewUserGetHandler(txm, userInteractor),
 		handlers.NewUserUpdateHandler(txm, userInteractor),
 	)

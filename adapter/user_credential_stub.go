@@ -59,6 +59,29 @@ func (g *StubUserCredentialGateway) Create(ctx context.Context, input port.UserC
 	return cred, nil
 }
 
+func (g *StubUserCredentialGateway) Update(ctx context.Context, input port.UserCredentialCreateUpdateInput) (*entity.UserCredential, error) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+	for email, cred := range g.creds {
+		if cred.UserID == input.UserID {
+			g.creds[email].Password = input.Password
+			return g.creds[email], nil
+		}
+	}
+
+	return nil, usecase.ErrNotFoundEntity
+}
+
+func (g *StubUserCredentialGateway) Check(ctx context.Context, email entity.Email, password entity.Password) error {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+	if cred, ok := g.creds[email]; !ok || cred.Password.String() != password.String() {
+		return usecase.ErrInvalidCredential
+	}
+
+	return nil
+}
+
 func NewStubUserCredentialGateway() port.UserCredentialGateway {
 	credGateway := new(StubUserCredentialGateway)
 	credGateway.m = new(mocks.UserCredentialGateway)

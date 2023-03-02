@@ -18,7 +18,7 @@ type (
 	CreateUserInput struct {
 		Name     string
 		Email    entity.Email
-		Password entity.Password
+		Password entity.HashedPassword
 	}
 	UpdateUserInput struct {
 		ID    entity.ID

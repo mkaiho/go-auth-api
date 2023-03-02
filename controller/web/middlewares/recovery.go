@@ -67,14 +67,22 @@ func Recovery() handlers.Handler {
 					"message": errMsgs[0].Err.Error(),
 				})
 			} else if errMsgs := c.Errors.ByType(gin.ErrorTypePublic); len(errMsgs) > 0 {
+				var msg string
 				code := http.StatusBadRequest
 				if errors.Is(errMsgs[0].Err, usecase.ErrNotFoundEntity) {
 					code = http.StatusNotFound
 				} else if errors.Is(errMsgs[0].Err, usecase.ErrAlreadyExistsEntity) {
 					code = http.StatusConflict
+				} else if handlers.IsAuthError(errMsgs[0].Err) {
+					code = http.StatusUnauthorized
+					msg = errMsgs[0].Err.Error()
+				}
+
+				if len(msg) == 0 {
+					msg = http.StatusText(code)
 				}
 				c.AbortWithStatusJSON(code, gin.H{
-					"message": http.StatusText(code),
+					"message": msg,
 				})
 			}
 		}()
