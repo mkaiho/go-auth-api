@@ -10,6 +10,9 @@ import (
 
 func ShouldBind[T any](gc *gin.Context, obj T) error {
 	vErr := new(validator.ValidationErrors)
+	if err := gc.ShouldBindHeader(obj); err != nil && !errors.As(err, vErr) {
+		return err
+	}
 	if err := gc.ShouldBindUri(obj); err != nil && !errors.As(err, vErr) {
 		return err
 	}
