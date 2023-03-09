@@ -9,7 +9,7 @@ ARG NODE_VERSION=18.13.0
 ARG SRC_MODULE=github.com/mkaiho/go-auth-api
 
 RUN apt-get update -y && apt-get install -y \
-  curl gcc make git zip unzip jq openssl ca-certificates gnupg lsb-release groff
+  curl gcc make git zip unzip jq openssl ca-certificates gnupg lsb-release groff default-mysql-client
 
 RUN curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
   && echo \
