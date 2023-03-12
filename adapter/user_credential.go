@@ -168,6 +168,7 @@ func (g *UserCredentialGateway) Check(ctx context.Context, email entity.Email, p
 		if errors.Is(err, usecase.ErrNotFoundEntity) {
 			return usecase.ErrNoAuthUser
 		}
+		return err
 	}
 	hashed, err := entity.ParseHashedPassword(credRow.Password)
 	if err != nil {

@@ -25,7 +25,7 @@ func NewUserRoutes(
 		{
 			method:   http.MethodPost,
 			path:     "/users",
-			handlers: handlers.Handlers{middlewares.CheckAuth(txm, credGateway), userCreate.Handle},
+			handlers: handlers.Handlers{userCreate.Handle},
 		},
 		{
 			method:   http.MethodGet,

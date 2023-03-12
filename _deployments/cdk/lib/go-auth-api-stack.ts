@@ -1,5 +1,5 @@
 import * as cdk from 'aws-cdk-lib';
-import { Stack, Tags } from 'aws-cdk-lib';
+import { SecretValue, Stack, Tags } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import {
   aws_ec2 as ec2,
@@ -9,8 +9,11 @@ import {
   aws_iam as iam,
   aws_logs as logs,
   aws_route53 as route53,
-  aws_route53_targets as targets
+  aws_route53_targets as targets,
+  aws_ssm as ssm,
+  aws_rds as rds,
 } from 'aws-cdk-lib';
+import { SecurityGroup } from 'aws-cdk-lib/aws-ec2';
 
 interface dns {
   zoneID: string
@@ -41,17 +44,38 @@ export class GoAuthApiStack extends cdk.Stack {
       .execSync("git rev-parse HEAD")
       .toString()
       .trim();
-    context.dns.zoneName = process.env.ZONE_NAME || ""
-    context.dns.domain = process.env.DOMAIN || ""
+
+    /**
+     * Get paramters from SSM
+     */
+    const dbPort = ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/db/port`) as unknown as number
+    const dbUser = ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/db/user`)
+    const dbName = ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/db/database`)
 
     /**
      * Role
      */
-    const executionRole = iam.Role.fromRoleArn(
-      this,
-      `ecsTaskExecutionRole`,
-      `arn:aws:iam::${Stack.of(this).account}:role/ecsTaskExecutionRole`
-    )
+    const executionRole = new iam.Role(this, `ecsTaskExecutionRole`, {
+      roleName: `${context.name}-ecsTaskExecutionRole`,
+      description: "ECS execution role",
+      assumedBy: new iam.ServicePrincipal('ecs-tasks.amazonaws.com'),
+      managedPolicies: [
+        iam.ManagedPolicy.fromAwsManagedPolicyName("service-role/AmazonECSTaskExecutionRolePolicy"),
+      ],
+    })
+    executionRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        "ssm:GetParameters",
+        "secretsmanager:GetSecretValue",
+        "kms:Decrypt",
+      ],
+      resources: [
+        `arn:aws:ssm:${this.region}:${this.account}:parameter/*`,
+        `arn:aws:secretsmanager:${this.region}:${this.account}:secret:*`,
+        `arn:aws:kms:${this.region}:${this.account}:key/*`,
+      ],
+    }))
 
     /**
      * VPC
@@ -80,6 +104,19 @@ export class GoAuthApiStack extends cdk.Stack {
       securityGroupName: `${context.name}-service-sg`,
     });
     apiServiceSg.connections.allowFrom(albSg, ec2.Port.tcp(3000), 'Allow alb access')
+    const bastionSg = new SecurityGroup(this, `${context.name}-bastion-sg`, {
+      vpc,
+      securityGroupName: `${context.name}-bastion-sg`,
+      description: "security group for bastion",
+    })
+    bastionSg.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(22));
+    const dbSg = new SecurityGroup(this, `${context.name}-db-sg`, {
+      vpc,
+      securityGroupName: `${context.name}-db-sg`,
+      description: "security group for auth db",
+    })
+    dbSg.connections.allowFrom(apiServiceSg, ec2.Port.tcp(dbPort), 'Allow db access from api')
+    dbSg.connections.allowFrom(bastionSg, ec2.Port.tcp(dbPort), 'Allow db access from bastion')
 
     /**
      * Gateway
@@ -113,13 +150,18 @@ export class GoAuthApiStack extends cdk.Stack {
       Tags.of(appPublicSubnet).add('Name', `${context.name}-app-public-subnet-${azSuffix}`)
       return appPublicSubnet
     })
-    const apPrivateSubnet = new ec2.Subnet(this, `${context.name}-app-private-subnet`, {
-      vpcId: vpc.vpcId,
-      cidrBlock: "10.0.11.0/24",
-      availabilityZone: "ap-northeast-1a",
-      mapPublicIpOnLaunch: false,
-    });
-    Tags.of(apPrivateSubnet).add('Name', `${context.name}-app-private-subnet`)
+    const apPrivateSubnets = appAvailabilityZones.map((az, i) => {
+      const azSuffix = az.replace(/^.*-/, "")
+      const apPrivateSubnet = new ec2.Subnet(this, `${context.name}-app-private-subnet-${azSuffix}`, {
+        vpcId: vpc.vpcId,
+        cidrBlock: `10.0.${i + 11}.0/24`,
+        availabilityZone: az,
+        mapPublicIpOnLaunch: false,
+      })
+      apPrivateSubnet.addDefaultInternetRoute(igw.ref, igwAttachment)
+      Tags.of(apPrivateSubnet).add('Name', `${context.name}-app-private-subnet-${azSuffix}`)
+      return apPrivateSubnet
+    })
 
     /**
      * VPC Endpoint
@@ -132,9 +174,8 @@ export class GoAuthApiStack extends cdk.Stack {
         vpc: vpc,
         open: true,
         privateDnsEnabled: true,
-        securityGroups: [apiServiceSg],
         subnets: {
-          subnets: [apPrivateSubnet],
+          subnets: apPrivateSubnets,
         },
       }
     );
@@ -146,9 +187,34 @@ export class GoAuthApiStack extends cdk.Stack {
         vpc: vpc,
         open: true,
         privateDnsEnabled: true,
-        securityGroups: [apiServiceSg],
         subnets: {
-          subnets: [apPrivateSubnet],
+          subnets: apPrivateSubnets,
+        },
+      }
+    );
+    const ssmVpce = new ec2.InterfaceVpcEndpoint(
+      this,
+      `${context.name}-vpce-ssm`,
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.SSM,
+        vpc: vpc,
+        open: true,
+        privateDnsEnabled: true,
+        subnets: {
+          subnets: apPrivateSubnets,
+        },
+      }
+    );
+    const secretMngVpce = new ec2.InterfaceVpcEndpoint(
+      this,
+      `${context.name}-vpce-secret-mng`,
+      {
+        service: ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+        vpc: vpc,
+        open: true,
+        privateDnsEnabled: true,
+        subnets: {
+          subnets: apPrivateSubnets,
         },
       }
     );
@@ -160,9 +226,8 @@ export class GoAuthApiStack extends cdk.Stack {
         vpc: vpc,
         open: true,
         privateDnsEnabled: true,
-        securityGroups: [apiServiceSg],
         subnets: {
-          subnets: [apPrivateSubnet],
+          subnets: apPrivateSubnets,
         },
       }
     );
@@ -171,10 +236,61 @@ export class GoAuthApiStack extends cdk.Stack {
       vpc: vpc,
       subnets: [
         {
-          subnets: [apPrivateSubnet],
+          subnets: apPrivateSubnets,
         },
       ],
     });
+
+    const rdb = new rds.DatabaseInstance(this, `${context.name}-db`, {
+      instanceIdentifier: `${context.name}-db`,
+      databaseName: ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/db/database`),
+      vpc: vpc,
+      availabilityZone: "ap-northeast-1a",
+      vpcSubnets: vpc.selectSubnets({
+        subnets: apPrivateSubnets,
+      }),
+      securityGroups: [
+        dbSg,
+      ],
+      engine: rds.DatabaseInstanceEngine.MYSQL,
+      instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+      allocatedStorage: 20,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      storageType: rds.StorageType.GP2,
+      port: dbPort,
+      storageEncrypted: true,
+      credentials: rds.Credentials.fromPassword(
+        ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/db/user`),
+        SecretValue.ssmSecure(`/${env}/go-auth-api/db/pass`),
+      )
+    })
+
+    /**
+     * EC2
+     */
+    // bastion
+    const bastionKey = new ec2.CfnKeyPair(this, `${context.name}-bastion-key`, {
+      keyName: `${context.name}-bastion-key`,
+    })
+    bastionKey.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY)
+    new ec2.Instance(this, `${context.name}-bastion`, {
+      vpc,
+      instanceName: `${context.name}-bastion`,
+      instanceType: ec2.InstanceType.of(
+        ec2.InstanceClass.T3,
+        ec2.InstanceSize.MICRO,
+      ),
+      machineImage: ec2.MachineImage.latestAmazonLinux({
+        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
+      }),
+      securityGroup: bastionSg,
+      vpcSubnets: {
+        subnets: [
+          apPublicSubnets[0],
+        ],
+      },
+      keyName: bastionKey.keyName,
+    })
 
     /**
      * ECR
@@ -249,14 +365,14 @@ export class GoAuthApiStack extends cdk.Stack {
       this,
       `${context.name}-hosted-zone`,
       {
-        hostedZoneId: context.dns.zoneID,
-        zoneName: context.dns.zoneName,
+        hostedZoneId: ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/dns/zoneID`),
+        zoneName: ssm.StringParameter.valueForStringParameter(this, `/${env}/go-auth-api/dns/zoneName`),
       },
     )
     const aliasRecord = new route53.ARecord(this, `${context.name}-alias-record`, {
       target: route53.RecordTarget.fromAlias(new targets.LoadBalancerTarget(alb)),
       zone: hostedZone,
-      recordName: context.dns.domain,
+      recordName: "auth",
     })
 
     /**
@@ -292,19 +408,31 @@ export class GoAuthApiStack extends cdk.Stack {
         streamPrefix: 'ecs',
         logGroup: logGroup,
       }),
+      environment: {
+        "MYSQL_HOST": rdb.instanceEndpoint.hostname,
+        "MYSQL_PORT": `${dbPort}`,
+        "MYSQL_USER": dbUser,
+        "MYSQL_DATABASE": dbName,
+      },
+      secrets: {
+        'MYSQL_PASSWORD': ecs.Secret.fromSsmParameter(
+          ssm.StringParameter.fromSecureStringParameterAttributes(this, 'ParameterRDBCredential', {
+            parameterName: `/${env}/go-auth-api/db/pass`,
+          })
+        ),
+      }
     })
     const service = new ecs.FargateService(this, `${context.name}-service`, {
       serviceName: `${context.name}-service`,
       cluster,
       taskDefinition,
       vpcSubnets: {
-        subnets: [
-          apPrivateSubnet,
-        ],
+        subnets: apPrivateSubnets,
       },
       securityGroups: [
         apiServiceSg,
       ],
+      desiredCount: 1,
     })
     service.attachToApplicationTargetGroup(targetGroup)
   }
