@@ -168,6 +168,7 @@ func NewLoggerZapImplWithOption(options ...loggerOption) (Logger, error) {
 	zc.EncoderConfig.TimeKey = "time"
 	zc.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	zc.Encoding = conf.Format.String()
+	zc.Sampling = nil
 	z, err := zc.Build()
 	if err != nil {
 		return nil, err
