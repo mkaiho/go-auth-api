@@ -4,6 +4,7 @@ import (
 	"context"
 	stdlog "log"
 	"os"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/stdr"
@@ -136,6 +137,8 @@ type Logger interface {
 	Warn(err error, msg string, keysAndValues ...interface{})
 	Error(err error, msg string, keysAndValues ...interface{})
 	WithCallDepth(depth int) Logger
+	WithName(name string) Logger
+	Begin(name string, msg string, keysAndValues ...interface{}) func(msg string, keysAndValues ...interface{})
 }
 
 type loggerContextKey struct{}
@@ -211,6 +214,27 @@ func (l *LoggerZapImpl) WithCallDepth(depth int) Logger {
 	}
 }
 
+func (l *LoggerZapImpl) WithName(name string) Logger {
+	return &LoggerZapImpl{
+		logger: l.logger.WithName(name),
+	}
+}
+
+func (l *LoggerZapImpl) Begin(name string, msg string, keysAndValues ...interface{}) func(msg string, keysAndValues ...interface{}) {
+	now := time.Now()
+	l.
+		WithName(name).
+		WithValues(keysAndValues...).
+		Info(msg)
+	return func(msg string, keysAndValues ...interface{}) {
+		l.
+			WithName(name).
+			WithValues(keysAndValues...).
+			WithValues("elapsedTime", time.Since(now).Seconds()).
+			Info(msg)
+	}
+}
+
 type LoggerStdImpl struct {
 	logger logr.Logger
 }
@@ -250,5 +274,26 @@ func (l *LoggerStdImpl) Error(err error, msg string, keysAndValues ...interface{
 func (l *LoggerStdImpl) WithCallDepth(depth int) Logger {
 	return &LoggerStdImpl{
 		logger: l.logger.WithCallDepth(depth),
+	}
+}
+
+func (l *LoggerStdImpl) WithName(name string) Logger {
+	return &LoggerStdImpl{
+		logger: l.logger.WithName(name),
+	}
+}
+
+func (l *LoggerStdImpl) Begin(name string, msg string, keysAndValues ...interface{}) func(msg string, keysAndValues ...interface{}) {
+	now := time.Now()
+	l.
+		WithName(name).
+		WithValues(keysAndValues...).
+		Info(msg)
+	return func(msg string, keysAndValues ...interface{}) {
+		l.
+			WithName(name).
+			WithValues(keysAndValues...).
+			WithValues("elapsedTime", time.Since(now).Milliseconds()).
+			Info(msg)
 	}
 }
