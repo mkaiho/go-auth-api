@@ -74,7 +74,7 @@ $ aws-vault exec stage -- make destroy
 
 1. Open ssh tunnel
     ```
-    $ open-bastion-tunnel
+    $ make open-bastion-tunnel
     ```
 1. Connect to DB
     ```
