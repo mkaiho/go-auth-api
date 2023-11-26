@@ -273,6 +273,9 @@ export class GoAuthApiStack extends cdk.Stack {
       keyName: `${context.name}-bastion-key`,
     })
     bastionKey.applyRemovalPolicy(cdk.RemovalPolicy.DESTROY)
+    new cdk.CfnOutput(this, `${context.name}-get-bastion-key-command`, {
+      value: `aws ssm get-parameter --name /ec2/keypair/${bastionKey.getAtt('KeyPairId')} --region ${this.region} --with-decryption --query Parameter.Value --output text`,
+    })
     new ec2.Instance(this, `${context.name}-bastion`, {
       vpc,
       instanceName: `${context.name}-bastion`,
@@ -280,9 +283,7 @@ export class GoAuthApiStack extends cdk.Stack {
         ec2.InstanceClass.T3,
         ec2.InstanceSize.MICRO,
       ),
-      machineImage: ec2.MachineImage.latestAmazonLinux({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
-      }),
+      machineImage: ec2.MachineImage.latestAmazonLinux2(),
       securityGroup: bastionSg,
       vpcSubnets: {
         subnets: [

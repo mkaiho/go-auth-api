@@ -2,14 +2,37 @@
 
 exports[`snapshot test 1`] = `
 {
+  "Outputs": {
+    "goauthapigetbastionkeycommand": {
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "aws ssm get-parameter --name /ec2/keypair/",
+            {
+              "Fn::GetAtt": [
+                "goauthapibastionkey",
+                "KeyPairId",
+              ],
+            },
+            " --region ",
+            {
+              "Ref": "AWS::Region",
+            },
+            " --with-decryption --query Parameter.Value --output text",
+          ],
+        ],
+      },
+    },
+  },
   "Parameters": {
     "BootstrapVersion": {
       "Default": "/cdk-bootstrap/hnb659fds/version",
       "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]",
       "Type": "AWS::SSM::Parameter::Value<String>",
     },
-    "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter": {
-      "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
+    "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter": {
+      "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-kernel-5.10-hvm-x86_64-gp2",
       "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
     },
     "SsmParameterValuestagegoauthapidbdatabaseC96584B6F00A464EAD1953AFF4B05118Parameter": {
@@ -635,7 +658,7 @@ exports[`snapshot test 1`] = `
           "Ref": "goauthapibastionInstanceProfile0E22F7EB",
         },
         "ImageId": {
-          "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amihvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter",
+          "Ref": "SsmParameterValueawsserviceamiamazonlinuxlatestamzn2amikernel510hvmx8664gp2C96584B6F00A464EAD1953AFF4B05118Parameter",
         },
         "InstanceType": "t3.micro",
         "KeyName": "go-auth-api-bastion-key",
@@ -887,12 +910,18 @@ exports[`snapshot test 1`] = `
     "goauthapiserviceServiceBF0B3AF3": {
       "DependsOn": [
         "goauthapialbgoauthapialbhttpslistener64C5C27A",
+        "goauthapitaskTaskRole4F553A1F",
       ],
       "Properties": {
         "Cluster": {
           "Ref": "goauthapiclusterA00E79D9",
         },
         "DeploymentConfiguration": {
+          "Alarms": {
+            "AlarmNames": [],
+            "Enable": false,
+            "Rollback": false,
+          },
           "MaximumPercent": 200,
           "MinimumHealthyPercent": 50,
         },
@@ -1031,7 +1060,7 @@ exports[`snapshot test 1`] = `
                   {
                     "Fn::Sub": "cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}",
                   },
-                  ":37f1d00de5a0e11e268f66124a192abcee1a6bd1",
+                  ":72dcc995b21c3c10f30da406d057f29d6323dbbe",
                 ],
               ],
             },

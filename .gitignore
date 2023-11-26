@@ -25,3 +25,5 @@ test-results/
 
 docker/mysql/data/
 docker/redis/*/data/
+
+*.pem

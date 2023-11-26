@@ -18,7 +18,9 @@ archive: $(ARCHIVES)
 $(ARCHIVES):$(BINARIES)
 	@test -d $(ARCHIVE_DIR) || mkdir $(ARCHIVE_DIR)
 	@test -d $(ARCHIVE_DIR)/cmd || mkdir $(ARCHIVE_DIR)/cmd
-	@zip -j $@.zip $(@:$(ARCHIVE_DIR)/%=$(BIN_DIR)/%)
+	@cp $(@:$(ARCHIVE_DIR)/%=$(BIN_DIR)/%) $(BIN_DIR)/bootstrap
+	@zip -j $@.zip $(BIN_DIR)/bootstrap
+	@rm $(BIN_DIR)/bootstrap
 
 .PHONY: reshim
 reshim:
@@ -69,6 +71,29 @@ deploy: cdk-test
 .PHONY: destroy
 destroy:
 	cd ./_deployments/cdk && npx cdk destroy -c env=stage
+
+.PHONY: fetch-bastion-key
+fetch-bastion-key:
+	eval $(shell aws-vault exec stage -- \
+	aws cloudformation describe-stacks --stack-name GoAuthApiStack | \
+	jq '.Stacks[0].Outputs | select(.[].OutputKey == "goauthapigetbastionkeycommand") | "aws-vault exec stage -- " + .[0].OutputValue + " > bastion_key.pem"')
+	chmod 0600 bastion_key.pem
+
+.PHONY: open-bastion-tunnel
+open-bastion-tunnel: fetch-bastion-key
+	eval $(shell echo \
+	$(shell aws-vault exec stage -- \
+	aws ec2 describe-instances \
+	--filters "Name=tag:Name,Values=go-auth-api-bastion" \
+	--query "Reservations[0].Instances[0].PublicDnsName" \
+	--out json | \
+	jq '{bastionInstanceHost:.} | @text') \
+	$(shell aws-vault exec stage -- aws rds describe-db-instances \
+	--filters "Name=db-instance-id,Values=go-auth-api-db" \
+	--query "DBInstances[0].Endpoint" \
+	--out json | \
+	jq '{dbHost:.Address,dbPort:.Port} | @text') | \
+	jq -s '.[0] * .[1] | "ssh -N -L 3307:"+.dbHost+":"+(.dbPort|tostring)+" -i ./bastion_key.pem -4 ec2-user@"+.bastionInstanceHost')
 
 .PHONY: clean
 clean:
