@@ -41,4 +41,8 @@ RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch ${ASDF_VERSIO
   && asdf plugin-add golang https://github.com/kennyp/asdf-golang.git \
   && asdf install golang ${GO_VERSION} \
   && asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git \
-  && asdf install nodejs ${NODE_VERSION}
+  && asdf install nodejs ${NODE_VERSION} \
+  && echo 'eval "$(direnv hook bash)"' >> ~/.bashrc \
+  && /root/.asdf/shims/aws configure set credential_process "aws-vault exec dev --json --prompt=terminal --duration 1h" --profile dev \
+  && /root/.asdf/shims/aws configure set credential_process "aws-vault exec stage --json --prompt=terminal --duration 1h" --profile stage \
+  && /root/.asdf/shims/aws configure set credential_process "aws-vault exec prod --json --prompt=terminal --duration 1h" --profile prod

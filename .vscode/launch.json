@@ -7,7 +7,11 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/auth-api-server/main.go",
-            "args": []
+            "args": [],
+            "env": {
+                "AWS_PROFILE": "stage"
+            },
+            "envFile": "${workspaceFolder}/.env",
         },
     ]
 }

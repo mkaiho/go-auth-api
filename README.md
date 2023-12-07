@@ -11,12 +11,14 @@ Repository for sample auth api.
 1. Export environment variables
     ```
     $ touch .envrc
-    $ echo "export CDK_DEFAULT_ACCOUNT=<YOUR AWS ACCOUNT FOR DEPLOY APPS>" >> .envrc
-    $ echo "export CDK_DEFAULT_REGION=<YOUR AWS REGION FOR DEPLOY APPS>" >> .envrc
-    $ echo "export AWS_VAULT_BACKEND=pass" >> .envrc
-    $ echo "export AWS_VAULT_PASS_PREFIX=aws-vault" >> .envrc
-    $ echo "export AWS_SESSION_TOKEN_TTL=1h" >> .envrc
-    $ echo "export AWS_DEFAULT_REGION=<YOUR AWS DEFAULT REGION>" >> .envrc
+    $ echo "dotenv" >> .envrc
+    $ touch .env
+    $ echo "CDK_DEFAULT_ACCOUNT=<YOUR AWS ACCOUNT FOR DEPLOY APPS>" >> .env
+    $ echo "CDK_DEFAULT_REGION=<YOUR AWS REGION FOR DEPLOY APPS>" >> .env
+    $ echo "AWS_VAULT_BACKEND=pass" >> .env
+    $ echo "AWS_VAULT_PASS_PREFIX=aws-vault" >> .env
+    $ echo "AWS_SESSION_TOKEN_TTL=1h" >> .env
+    $ echo "AWS_DEFAULT_REGION=<YOUR AWS DEFAULT REGION>" >> .env
     $ direnv allow
     ```
 
@@ -44,8 +46,19 @@ Repository for sample auth api.
     ```
 1. Check for successful completion
     ```
-    $ aws-vault exec stage -- aws s3 ls
+    $ aws --profile <PROFILE NAME> s3 ls
     ```
+
+### Debug
+
+- Visual Studio Code
+    1. Get AWS credential (expires in 1h)
+        ```
+        $ AWS_PROFILE=<PROFILE NAME> make cache-credentials
+        ```
+    1. Select the Debug tab from the Activity Bar on the left side
+    1. Select `auth-api-server` from the pull-down menu at the top of the Side Menu
+    1. Click the green triangle icon button to start debugging
 
 ## Deploy and destroy applications
 
@@ -61,20 +74,24 @@ Repository for sample auth api.
     ```
 1. Deploy applications
     ```
-    $ aws-vault exec stage -- make deploy
+    $ AWS_PROFILE=<PROFILE NAME> DEPLOY_ENV=<DEPLOY ENV NAME> make deploy
     ```
 
 ### Destroy applications with CDK in AWS
 
 ```
-$ aws-vault exec stage -- make destroy
+$ AWS_PROFILE=<PROFILE NAME> DEPLOY_ENV=<DEPLOY ENV NAME> make destroy
 ```
 
 ### Connect to DB via ssh tunnel
 
+1. Fetch ssh key for bastion
+    ```
+    $ AWS_PROFILE=<PROFILE NAME> make fetch-bastion-key
+    ```
 1. Open ssh tunnel
     ```
-    $ make open-bastion-tunnel
+    $ AWS_PROFILE=<PROFILE NAME> make open-bastion-tunnel
     ```
 1. Connect to DB
     ```

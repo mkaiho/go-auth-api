@@ -16,6 +16,7 @@
 
 .ssh/
 
+.env
 .envrc
 
 _deployments/bin/

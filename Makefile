@@ -5,6 +5,8 @@ BINARIES:=$(SRC_DIR:$(ROOT_PACKAGE)/%=$(BIN_DIR)/%)
 ARCHIVE_DIR:=_deployments/zip
 ARCHIVES:=$(SRC_DIR:$(ROOT_PACKAGE)/%=$(ARCHIVE_DIR)/%)
 
+AWS_PROFILE ?= stage
+DEPLOY_ENV ?= stage
 
 .PHONY: build
 build: clean $(BINARIES)
@@ -66,29 +68,31 @@ cdk-update-snapshot:
 
 .PHONY: deploy
 deploy: cdk-test
-	cd ./_deployments/cdk && npx cdk deploy -c env=stage
+	cd ./_deployments/cdk && npx cdk deploy --profile $(AWS_PROFILE) -c env=$(DEPLOY_ENV)
 
 .PHONY: destroy
 destroy:
-	cd ./_deployments/cdk && npx cdk destroy -c env=stage
+	cd ./_deployments/cdk && npx cdk destroy --profile $(AWS_PROFILE) -c env=$(DEPLOY_ENV)
+
+.PHONY: cache-credentials
+cache-credentials:
+	@aws-vault exec $(AWS_PROFILE) --json --prompt=terminal --duration 1h > /dev/null
 
 .PHONY: fetch-bastion-key
 fetch-bastion-key:
-	eval $(shell aws-vault exec stage -- \
-	aws cloudformation describe-stacks --stack-name GoAuthApiStack | \
-	jq '.Stacks[0].Outputs | select(.[].OutputKey == "goauthapigetbastionkeycommand") | "aws-vault exec stage -- " + .[0].OutputValue + " > bastion_key.pem"')
+	eval $(shell aws --profile $(AWS_PROFILE) cloudformation describe-stacks --stack-name GoAuthApiStack | \
+	jq '.Stacks[0].Outputs | select(.[].OutputKey == "goauthapigetbastionkeycommand") | "aws-vault exec $(AWS_PROFILE) -- " + .[0].OutputValue + " > bastion_key.pem"')
 	chmod 0600 bastion_key.pem
 
 .PHONY: open-bastion-tunnel
 open-bastion-tunnel: fetch-bastion-key
 	eval $(shell echo \
-	$(shell aws-vault exec stage -- \
-	aws ec2 describe-instances \
+	$(shell aws --profile $(AWS_PROFILE) ec2 describe-instances \
 	--filters "Name=tag:Name,Values=go-auth-api-bastion" \
 	--query "Reservations[0].Instances[0].PublicDnsName" \
 	--out json | \
 	jq '{bastionInstanceHost:.} | @text') \
-	$(shell aws-vault exec stage -- aws rds describe-db-instances \
+	$(shell aws --profile $(AWS_PROFILE) rds describe-db-instances \
 	--filters "Name=db-instance-id,Values=go-auth-api-db" \
 	--query "DBInstances[0].Endpoint" \
 	--out json | \

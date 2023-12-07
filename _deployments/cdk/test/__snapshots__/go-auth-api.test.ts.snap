@@ -1060,7 +1060,7 @@ exports[`snapshot test 1`] = `
                   {
                     "Fn::Sub": "cdk-hnb659fds-container-assets-\${AWS::AccountId}-\${AWS::Region}",
                   },
-                  ":72dcc995b21c3c10f30da406d057f29d6323dbbe",
+                  ":a7e543eb2e35d5af15f43dcc995a7b578566255c",
                 ],
               ],
             },
