@@ -72,8 +72,13 @@ func ParseRSAPrivateKeyBlockType(v string) RSAPrivateKeyBlockType {
 	}
 }
 
+var _ RSAKeyManager = (*rsaKeyManager)(nil)
+
 type RSAKeyManager interface {
-	GeneratePrivateKey() (*rsa.PrivateKey, error)
+	GenerateRSAPrivateKey(bits int) (*rsa.PrivateKey, error)
+	ReadPemFile(filename string) (*rsa.PrivateKey, error)
+	ReadPemBytes(b []byte) (*rsa.PrivateKey, error)
+	ConvertFormat(privateKey *rsa.PrivateKey, format RSAPrivateKeyFormat) ([]byte, error)
 }
 
 func NewRSAKeyManager() *rsaKeyManager {

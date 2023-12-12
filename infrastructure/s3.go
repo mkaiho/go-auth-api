@@ -38,7 +38,7 @@ func NewS3Client(bucket string, conf aws.Config) *S3Client {
 	}
 }
 
-func (c S3Client) Get(ctx context.Context, path string) (io.Reader, error) {
+func (c S3Client) Get(ctx context.Context, path string) (io.ReadCloser, error) {
 	output, err := c.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &c.bucket,
 		Key:    &path,
