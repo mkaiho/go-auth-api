@@ -85,7 +85,7 @@ func (g *UserCredentialGateway) Create(ctx context.Context, input port.UserCrede
 		}
 	}
 
-	id, err := g.idgen.Generate(ctx)
+	id, err := g.idgen.Generate()
 	if err != nil {
 		return nil, err
 	}

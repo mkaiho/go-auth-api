@@ -96,7 +96,7 @@ func (g *UserGateway) Create(ctx context.Context, input port.UserCreateInput) (*
 		return nil, usecase.ErrAlreadyExistsEntity
 	}
 
-	id, err := g.idgen.Generate(ctx)
+	id, err := g.idgen.Generate()
 	if err != nil {
 		return nil, err
 	}
